@@ -18,11 +18,24 @@ Synthetic demo는 dashboard 동작을 보여 주기 위한 예시이며 실제 L
 | `examples/dashboards/` | Grafana dashboard와 Docker Compose 예시 |
 | `config/` | Metrics Contract |
 
-사용하는 쪽은 저장소 루트를 `PYTHONPATH`에 추가합니다.
+## Python Package Usage
+
+`post-training-lab`과 source checkout을 함께 개발할 때는 저장소 루트를 `PYTHONPATH`에 추가합니다.
+이 방식이 `post-training-lab` launcher의 기본값이며 checkout된 submodule commit을 그대로 사용합니다.
 
 ```bash
 export PYTHONPATH="/path/to/post-training-telemetry${PYTHONPATH:+:$PYTHONPATH}"
 ```
+
+독립된 application에서 Python module만 사용하려면 선택적으로 설치할 수 있습니다.
+
+```bash
+python -m pip install /path/to/post-training-telemetry
+```
+
+설치 후에는 `PYTHONPATH`를 설정하지 않아도 `post_training_telemetry`를 import할 수 있습니다.
+로컬에서 telemetry source를 함께 수정할 때는 `python -m pip install -e /path/to/post-training-telemetry`를 사용할 수 있습니다.
+Shell script, dashboard와 demo fixture는 Python package에 포함되지 않으므로 해당 기능은 source checkout에서 실행합니다.
 
 ## Start Here
 
