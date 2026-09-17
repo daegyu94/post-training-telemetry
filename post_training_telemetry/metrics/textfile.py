@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 
-from observatory_metrics.prometheus import GaugeSample, write_gauges
+from post_training_telemetry.metrics.prometheus import GaugeSample, write_gauges
 
 
 def _iter_snapshots(metrics_dir: Path) -> list[dict]:
@@ -77,7 +77,7 @@ def main() -> None:
     if args.interval <= 0:
         parser.error("interval must be positive")
     while True:
-        write_gauges(args.textfile_dir, "observatory.prom", build_metrics(_iter_snapshots(args.metrics_dir)))
+        write_gauges(args.textfile_dir, "application.prom", build_metrics(_iter_snapshots(args.metrics_dir)))
         time.sleep(args.interval)
 
 

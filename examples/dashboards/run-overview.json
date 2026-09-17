@@ -161,7 +161,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (instance) (time() - profiling_gpu_sample_timestamp_seconds{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"})",
+          "expr": "max by (instance) (time() - telemetry_gpu_sample_timestamp_seconds{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"})",
           "instant": true,
           "legendFormat": "{{instance}}"
         }
@@ -201,7 +201,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "label_join((profiling_gpu_utilization_percent{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"} and on(cluster, instance) (time() - profiling_gpu_sample_timestamp_seconds{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"} < 30)), \"node\", \"/\", \"cluster\", \"instance\")",
+          "expr": "label_join((telemetry_gpu_utilization_percent{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"} and on(cluster, instance) (time() - telemetry_gpu_sample_timestamp_seconds{job=\"telemetry\",cluster=~\"$cluster\",instance=~\"$node\"} < 30)), \"node\", \"/\", \"cluster\", \"instance\")",
           "format": "table",
           "instant": true
         }

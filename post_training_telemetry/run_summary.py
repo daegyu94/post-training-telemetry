@@ -1,8 +1,4 @@
-"""Build the common machine-readable experiment summary.
-
-Lives at the repository root so consumers that put this repository on
-PYTHONPATH can import it by bare name (e.g. megatron_lab.compare).
-"""
+"""Build the common machine-readable experiment summary."""
 
 from __future__ import annotations
 

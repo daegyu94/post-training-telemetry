@@ -20,7 +20,7 @@ cleanup() {
   trap - EXIT INT TERM
   for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done
   for pid in "${pids[@]}"; do wait "$pid" 2>/dev/null || true; done
-  if [[ "$role" == node ]]; then rm -f "$output_dir/textfile/gpu.prom" "$output_dir/textfile/observatory.prom"; fi
+  if [[ "$role" == node ]]; then rm -f "$output_dir/textfile/gpu.prom" "$output_dir/textfile/application.prom"; fi
 }
 trap cleanup EXIT
 trap 'exit 130' INT
@@ -179,18 +179,18 @@ EOF
   if [[ "${ENABLE_SSD_HEALTH:-0}" == 1 ]]; then
     start_smartctl_exporter
   fi
-  "${PYTHON:-python3}" -m profiling_lab.telemetry \
+  "${PYTHON:-python3}" -m post_training_telemetry.gpu_sampler \
     --output "$output_dir/gpu-$(date -u +%Y%m%dT%H%M%S).jsonl" \
     --textfile-dir "$output_dir/textfile" --duration "${DURATION:-900}" &
   pids+=("$!")
-  if [[ -n "${OBSERVATORY_METRICS_DIR:-}" ]]; then
-    "${PYTHON:-python3}" -m observatory_metrics.textfile \
-      --metrics-dir "$OBSERVATORY_METRICS_DIR" \
-      --textfile-dir "$output_dir/textfile" --interval "${OBSERVATORY_METRICS_INTERVAL:-2}" &
+  if [[ -n "${TELEMETRY_METRICS_DIR:-}" ]]; then
+    "${PYTHON:-python3}" -m post_training_telemetry.metrics.textfile \
+      --metrics-dir "$TELEMETRY_METRICS_DIR" \
+      --textfile-dir "$output_dir/textfile" --interval "${TELEMETRY_METRICS_INTERVAL:-2}" &
     pids+=("$!")
   fi
   if [[ -n "${TOPOLOGY_DIR:-}" ]]; then
-    "${PYTHON:-python3}" -m profiling_lab.topology_textfile \
+    "${PYTHON:-python3}" -m post_training_telemetry.topology_textfile \
       --topology-dir "$TOPOLOGY_DIR" --textfile-dir "$output_dir/textfile" \
       --interval "${TOPOLOGY_INTERVAL:-10}" &
     pids+=("$!")
@@ -221,11 +221,11 @@ elif [[ "$role" == server ]]; then
     demo_addr="${DEMO_ADDR:-127.0.0.1}"
     demo_port="${DEMO_PORT:-19110}"
     demo_topology_dir="${DEMO_TOPOLOGY_DIR:-$PWD/examples/live-demo}"
-    "${PYTHON:-python3}" -m profiling_lab.live_demo \
+    "${PYTHON:-python3}" -m post_training_telemetry.live_demo \
       --listen "$demo_addr:$demo_port" --topology-dir "$demo_topology_dir" \
       --write-prometheus-config "$output_dir/prometheus.yml"
     if [[ "${SERVER_CONFIG_ONLY:-0}" != 1 ]]; then
-      "${PYTHON:-python3}" -m profiling_lab.live_demo \
+      "${PYTHON:-python3}" -m post_training_telemetry.live_demo \
         --listen "$demo_addr:$demo_port" --topology-dir "$demo_topology_dir" &
       pids+=("$!")
     fi

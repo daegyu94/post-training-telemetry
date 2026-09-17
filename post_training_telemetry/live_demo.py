@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from observatory_metrics.prometheus import GaugeSample, format_gauges
+from post_training_telemetry.metrics.prometheus import GaugeSample, format_gauges
 
 
 _NAME = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -89,7 +89,7 @@ class Demo:
 
     def _gpu_node(self, node: str, now: float, phase: str, value: dict[str, float]) -> list[GaugeSample]:
         samples = [
-            GaugeSample("profiling_gpu_sample_timestamp_seconds", "Synthetic GPU sample timestamp.", time.time()),
+            GaugeSample("telemetry_gpu_sample_timestamp_seconds", "Synthetic GPU sample timestamp.", time.time()),
             GaugeSample("node_memory_MemAvailable_bytes", "Synthetic host memory available.", 760 * _GIB),
             GaugeSample("node_memory_SwapTotal_bytes", "Synthetic host swap total.", 32 * _GIB),
             GaugeSample("node_memory_SwapFree_bytes", "Synthetic host swap free.", 32 * _GIB),
@@ -121,11 +121,11 @@ class Demo:
                 "node": node, "worker_id": str(rank), "local_rank": str(rank),
             }
             samples += [
-                GaugeSample("profiling_gpu_utilization_percent", "Synthetic GPU utilization.", max(0, min(100, value["gpu"] + wobble)), {"gpu": str(rank)}),
-                GaugeSample("profiling_gpu_power_watts", "Synthetic GPU power.", 820 + value["gpu"] * 3, {"gpu": str(rank)}),
-                GaugeSample("profiling_gpu_temperature_celsius", "Synthetic GPU temperature.", 54 + value["gpu"] * .2 + wobble, {"gpu": str(rank)}),
-                GaugeSample("profiling_gpu_sm_clock_mhz", "Synthetic GPU SM clock.", 1800 + value["gpu"] * 5, {"gpu": str(rank)}),
-                GaugeSample("profiling_gpu_process_memory_bytes", "Synthetic training process GPU memory.", 144 * _GIB, {"pid": str(9000 + rank), "gpu_uuid": f"DEMO-{node}-{rank}"}),
+                GaugeSample("telemetry_gpu_utilization_percent", "Synthetic GPU utilization.", max(0, min(100, value["gpu"] + wobble)), {"gpu": str(rank)}),
+                GaugeSample("telemetry_gpu_power_watts", "Synthetic GPU power.", 820 + value["gpu"] * 3, {"gpu": str(rank)}),
+                GaugeSample("telemetry_gpu_temperature_celsius", "Synthetic GPU temperature.", 54 + value["gpu"] * .2 + wobble, {"gpu": str(rank)}),
+                GaugeSample("telemetry_gpu_sm_clock_mhz", "Synthetic GPU SM clock.", 1800 + value["gpu"] * 5, {"gpu": str(rank)}),
+                GaugeSample("telemetry_gpu_process_memory_bytes", "Synthetic training process GPU memory.", 144 * _GIB, {"pid": str(9000 + rank), "gpu_uuid": f"DEMO-{node}-{rank}"}),
                 GaugeSample("training_sample_timestamp_seconds", "Synthetic training sample timestamp.", time.time(), labels),
                 GaugeSample("training_step", "Synthetic training step.", int(now - self.started), labels),
                 GaugeSample("training_tokens_per_second", "Synthetic worker throughput.", value["tokens"], labels),
@@ -158,24 +158,24 @@ class Demo:
     def _topology(self) -> list[GaugeSample]:
         samples = []
         for node in self.gpu["gpu_nodes"]:
-            samples.append(GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": node, "role": "gpu-node"}))
+            samples.append(GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": node, "role": "gpu-node"}))
             for gpu in range(self.gpu["gpus_per_node"]):
                 component = f"{node}/gpu-{gpu}"
-                samples.append(GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": component, "role": self.gpu["gpu_model"]}))
+                samples.append(GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": component, "role": self.gpu["gpu_model"]}))
                 for peer in range(self.gpu["gpus_per_node"]):
                     if gpu != peer:
-                        samples.append(GaugeSample("profiling_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "compute", "source": component, "destination": f"{node}/gpu-{peer}", "relation": self.gpu["intra_node_interconnect"]}))
-            samples.append(GaugeSample("profiling_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "compute", "source": node, "destination": "roce-fabric", "relation": self.network}))
-        samples.append(GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": "roce-fabric", "role": "network"}))
+                        samples.append(GaugeSample("telemetry_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "compute", "source": component, "destination": f"{node}/gpu-{peer}", "relation": self.gpu["intra_node_interconnect"]}))
+            samples.append(GaugeSample("telemetry_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "compute", "source": node, "destination": "roce-fabric", "relation": self.network}))
+        samples.append(GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "compute", "component": "roce-fabric", "role": "network"}))
         for node in self.storage["storage_nodes"]:
-            samples.append(GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": node, "role": "storage-node"}))
+            samples.append(GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": node, "role": "storage-node"}))
             for ssd in range(self.storage["ssds_per_node"]):
                 samples += [
-                    GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": f"{node}/nvme{ssd}n1", "role": "ssd"}),
-                    GaugeSample("profiling_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "storage", "source": node, "destination": f"{node}/nvme{ssd}n1", "relation": "attached"}),
+                    GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": f"{node}/nvme{ssd}n1", "role": "ssd"}),
+                    GaugeSample("telemetry_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "storage", "source": node, "destination": f"{node}/nvme{ssd}n1", "relation": "attached"}),
                 ]
-            samples.append(GaugeSample("profiling_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "storage", "source": node, "destination": "roce-fabric", "relation": self.network}))
-        samples.append(GaugeSample("profiling_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": "roce-fabric", "role": "network"}))
+            samples.append(GaugeSample("telemetry_topology_edge_info", "Synthetic topology edge.", 1, {"kind": "storage", "source": node, "destination": "roce-fabric", "relation": self.network}))
+        samples.append(GaugeSample("telemetry_topology_component_info", "Synthetic topology component.", 1, {"kind": "storage", "component": "roce-fabric", "role": "network"}))
         return samples
 
 

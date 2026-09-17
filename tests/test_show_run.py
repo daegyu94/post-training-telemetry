@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from profiling_lab.show_run import summarize
+from post_training_telemetry.show_run import summarize
 
 
 def test_summarize_reads_metadata_and_application_metrics_without_rank_duplicates(tmp_path: Path) -> None:
@@ -10,7 +10,7 @@ def test_summarize_reads_metadata_and_application_metrics_without_rank_duplicate
     )
     (tmp_path / "run-metadata-train-rank-0.json").write_text(json.dumps({"model_id": "duplicate"}), encoding="utf-8")
     (tmp_path / "summary-train.json").write_text(json.dumps({"model_id": "trl-model", "train_seconds": 12.5}), encoding="utf-8")
-    metrics_dir = tmp_path / "observatory-metrics"
+    metrics_dir = tmp_path / "telemetry-metrics"
     metrics_dir.mkdir()
     (metrics_dir / "megatron-trainer-0.json").write_text(
         json.dumps({
@@ -35,4 +35,4 @@ def test_summarize_reads_metadata_and_application_metrics_without_rank_duplicate
 def test_summarize_notes_missing_sources(tmp_path: Path) -> None:
     output = summarize(tmp_path)
     assert "no run-metadata" in output
-    assert "no observatory-metrics" in output
+    assert "no telemetry-metrics" in output

@@ -55,17 +55,17 @@ DURATION=3600 \
 ```bash
 NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
-OBSERVATORY_METRICS_DIR='<launcher-output>/observatory-metrics' \
+TELEMETRY_METRICS_DIR='<launcher-output>/telemetry-metrics' \
 DURATION=3600 \
   bash scripts/run_telemetry.sh node
 ```
 
-[`observatory_metrics.textfile`](../observatory_metrics/textfile.py)은 worker JSON을 읽어 다음 metric을 node exporter의 textfile collector로 전달합니다.
+[`post_training_telemetry.metrics.textfile`](../post_training_telemetry/metrics/textfile.py)은 worker JSON을 읽어 다음 metric을 node exporter의 textfile collector로 전달합니다.
 
 - 공통: `training_loss`, `training_tokens_per_second`, `training_step_time_seconds`, `training_step`
 - Megatron: `training_timer_seconds{timer="..."}`
 
-`OBSERVATORY_METRICS_DIR`를 생략하면 application metrics만 수집하지 않으며 host·GPU monitoring은 계속됩니다.
+`TELEMETRY_METRICS_DIR`를 생략하면 application metrics만 수집하지 않으며 host·GPU monitoring은 계속됩니다.
 각 node에는 node-local 경로를 지정해야 합니다.
 여러 node가 같은 NFS 디렉터리를 읽으면 동일한 worker가 여러 `instance`에 중복됩니다.
 
@@ -161,7 +161,7 @@ Alloy는 `cluster`, `node`, `workload`만 직접 index label로 설정하고 `ru
 Run Overview의 `Run Logs` 링크는 현재 시간 범위와 run 선택을 유지합니다.
 
 ```bash
-PYTHONPATH=. python -m profiling_lab.stack validate-stack \
+PYTHONPATH=. python -m post_training_telemetry.stack validate-stack \
   --prometheus-url http://127.0.0.1:19090 \
   --grafana-url http://127.0.0.1:13000 \
   --loki-url http://<controller-management-address>:13100 \

@@ -234,7 +234,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (cluster, kind, component, role) (profiling_topology_component_info{job=\"telemetry\",cluster=~\"$cluster\",kind=\"storage\"})",
+          "expr": "max by (cluster, kind, component, role) (telemetry_topology_component_info{job=\"telemetry\",cluster=~\"$cluster\",kind=\"storage\"})",
           "format": "table",
           "instant": true
         }
@@ -268,7 +268,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "label_join(label_join(max by (cluster, source, destination) (profiling_topology_edge_info{job=\"telemetry\",cluster=~\"$cluster\",kind=\"storage\"}), \"source_key\", \"/\", \"cluster\", \"source\"), \"destination_key\", \"/\", \"cluster\", \"destination\")",
+          "expr": "label_join(label_join(max by (cluster, source, destination) (telemetry_topology_edge_info{job=\"telemetry\",cluster=~\"$cluster\",kind=\"storage\"}), \"source_key\", \"/\", \"cluster\", \"source\"), \"destination_key\", \"/\", \"cluster\", \"destination\")",
           "format": "table",
           "instant": true
         }

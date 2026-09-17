@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from profiling_lab.topology_textfile import build_gauges
+from post_training_telemetry.topology_textfile import build_gauges
 
 
 def test_build_gauges_emits_supplied_components_and_edges(tmp_path: Path) -> None:
@@ -13,7 +13,7 @@ def test_build_gauges_emits_supplied_components_and_edges(tmp_path: Path) -> Non
     gauges = build_gauges(tmp_path)
 
     assert {(g.name, g.labels.get("component")) for g in gauges} >= {
-        ("profiling_topology_component_info", "meta-0"),
-        ("profiling_topology_component_info", "data-0"),
+        ("telemetry_topology_component_info", "meta-0"),
+        ("telemetry_topology_component_info", "data-0"),
     }
-    assert any(g.name == "profiling_topology_edge_info" and g.labels["relation"] == "metadata" for g in gauges)
+    assert any(g.name == "telemetry_topology_edge_info" and g.labels["relation"] == "metadata" for g in gauges)

@@ -29,19 +29,19 @@ Synthetic trace나 NCCL baseline을 실제 LLM throughput으로 해석하지 않
 
 ## Inspect Run State
 
-[`show_run`](../profiling_lab/show_run.py)은 monitoring server 없이 한 output directory의 실행 상태를 요약합니다.
+[`show_run`](../post_training_telemetry/show_run.py)은 monitoring server 없이 한 output directory의 실행 상태를 요약합니다.
 
 | 입력 | 표시하는 정보 |
 | --- | --- |
 | Megatron `run-metadata-<stage>.json` | stage별 실행 metadata와 상태 |
 | TRL `summary-<stage>.json` | stage별 summary |
-| `observatory-metrics/<producer>-<role>-<worker>.json` | worker별 마지막 step과 metric |
+| `telemetry-metrics/<producer>-<role>-<worker>.json` | worker별 마지막 step과 metric |
 
 ```bash
-PYTHONPATH=. python3 -m profiling_lab.show_run '<output-dir>'
+PYTHONPATH=. python3 -m post_training_telemetry.show_run '<output-dir>'
 ```
 
-Application metric을 보려면 실행 시 `OBSERVATORY_RUN_ID`와 `OBSERVATORY_METRICS_DIR`가 설정되어 있어야 합니다.
+Application metric을 보려면 실행 시 `TELEMETRY_RUN_ID`와 `TELEMETRY_METRICS_DIR`가 설정되어 있어야 합니다.
 output directory가 node-local이라 controller에서 보이지 않으면 해당 node에서 명령을 실행합니다.
 
 `show_run`이 보여 주는 application metric은 마지막 snapshot입니다.

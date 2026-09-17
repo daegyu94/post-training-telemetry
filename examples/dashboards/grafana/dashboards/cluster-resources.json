@@ -61,7 +61,7 @@
   ],
   "refresh": "5s",
   "schemaVersion": 41,
-  "tags": ["llm", "profiling", "multinode"],
+  "tags": ["llm", "telemetry", "multinode"],
   "templating": {"list": []},
   "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",

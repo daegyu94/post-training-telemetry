@@ -2,7 +2,7 @@
   {
     "targets": ["node-a.example:9400", "node-b.example:9400"],
     "labels": {
-      "cluster": "profiling-lab",
+      "cluster": "example-cluster",
       "run_id": "replace-me"
     }
   }

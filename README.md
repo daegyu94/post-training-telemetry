@@ -11,9 +11,9 @@ Synthetic demo는 dashboard 동작을 보여 주기 위한 예시이며 실제 L
 
 | 경로 | 내용 |
 | --- | --- |
-| `observatory_metrics/` | framework를 import하지 않는 application metric SDK와 textfile 변환 |
-| `profiling_lab/` | GPU sampler, topology·live demo, stack 검증, `show_run`, framework adapter |
-| `resource_sampler.py`, `run_summary.py` | launcher가 bare name으로 사용하는 host sampler와 run summary helper |
+| `post_training_telemetry/metrics/` | framework를 import하지 않는 application metric SDK와 textfile 변환 |
+| `post_training_telemetry/adapters/` | Hugging Face Trainer 등 framework adapter |
+| `post_training_telemetry/` | GPU·host resource sampler, topology·live demo, stack 검증, `show_run`, run summary |
 | `scripts/` | tool 설치, `node`·`storage`·`server` role 실행, profile·NCCL baseline |
 | `examples/dashboards/` | Grafana dashboard와 Docker Compose 예시 |
 | `config/` | Metrics Contract |
@@ -57,14 +57,21 @@ for f in scripts/*.sh; do bash -n "$f"; done
 ## Migrating from `observability/`
 
 `post-training-lab/observability`에서 분리하면서 다음 이름이 바뀌었습니다.
-Metric SDK의 `observatory_metrics` package, `OBSERVATORY_*` 환경변수와 metric 이름은 그대로입니다.
+`training_*` application metric 이름은 그대로입니다.
 
 | 이전 | 현재 |
 | --- | --- |
 | `scripts/run_observability.sh` | `scripts/run_telemetry.sh` |
 | `scripts/install_observability_tools.sh` | `scripts/install_telemetry_tools.sh` |
 | `scripts/validate_observability.sh` | `scripts/validate_stack.sh` |
-| `python -m profiling_lab.observability` | `python -m profiling_lab.stack` |
+| `observatory_metrics` | `post_training_telemetry.metrics` |
+| `profiling_lab` | `post_training_telemetry` |
+| `profiling_lab.telemetry` | `post_training_telemetry.gpu_sampler` |
+| `profiling_lab.observability` | `post_training_telemetry.stack` |
+| `resource_sampler.py`, `run_summary.py` (저장소 루트) | `post_training_telemetry.resource_sampler`, `post_training_telemetry.run_summary` |
+| `OBSERVATORY_RUN_ID`, `OBSERVATORY_METRICS_DIR`, `OBSERVATORY_METRICS_INTERVAL` | `TELEMETRY_RUN_ID`, `TELEMETRY_METRICS_DIR`, `TELEMETRY_METRICS_INTERVAL` |
+| `<output>/observatory-metrics/`, textfile `observatory.prom` | `<output>/telemetry-metrics/`, `application.prom` |
+| Prometheus metric `profiling_gpu_*`, `profiling_topology_*` | `telemetry_gpu_*`, `telemetry_topology_*` |
 | `examples/observability/` | `examples/dashboards/` |
 | `OBSERVABILITY_TARGETS`, `OBSERVABILITY_LOG_ROOTS` | `TELEMETRY_TARGETS`, `TELEMETRY_LOG_ROOTS` |
 | 기본 `TOOLS_DIR` `~/.local/share/observability-tools` | `~/.local/share/telemetry-tools` |

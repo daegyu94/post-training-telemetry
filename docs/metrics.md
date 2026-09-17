@@ -13,7 +13,7 @@ Metrics Contract는 관측 데이터를 기록하고 비교할 때 사용할 이
 | Collector·application adapter 개발자 | 새 metric의 canonical name, unit, scope 결정 | 계약을 구현 기준으로 사용 |
 | Summary·분석 코드 개발자 | 서로 다른 run과 backend의 값을 같은 단위로 비교 | canonical vocabulary를 출력 기준으로 사용 |
 | Dashboard 작성자 | exporter 원본 metric의 의미와 변환 단위 확인 | 원본 Prometheus metric을 직접 query |
-| Schema validator·test | 계약 파일의 구조, 필수 field, 중복 검사 | [`schema.py`](../profiling_lab/schema.py)가 JSON을 검증 |
+| Schema validator·test | 계약 파일의 구조, 필수 field, 중복 검사 | [`schema.py`](../post_training_telemetry/schema.py)가 JSON을 검증 |
 
 즉, 계약은 생산자와 소비자가 따라야 할 공통 규칙입니다.
 metric을 실제로 수집하려면 collector나 adapter 구현이 별도로 필요합니다.
@@ -124,8 +124,8 @@ NCCL IB transport처럼 kernel network stack을 우회하는 traffic은 `network
 
 ## Application Integration
 
-Runner는 output 이름을 `OBSERVATORY_RUN_ID`로 설정합니다.
-TRL·Megatron callback은 `<output>/observatory-metrics/`의 worker JSON을 atomic replace합니다.
+Runner는 output 이름을 `TELEMETRY_RUN_ID`로 설정합니다.
+TRL·Megatron callback은 `<output>/telemetry-metrics/`의 worker JSON을 atomic replace합니다.
 다른 application을 연결하는 방법은 [Application Metrics Guide](application-metrics.md)를 따릅니다.
 
 | 사용 경로 | Reader |

@@ -5,15 +5,15 @@ Application은 로컬 JSON snapshot만 갱신하고, 별도 collector가 이를 
 
 ## Package Boundaries
 
-`observatory_metrics`는 framework를 import하지 않는 공용 SDK이며 `Metric`, `MetricEmitter`, Prometheus textfile 변환을 소유합니다.
-`profiling_lab.adapters`는 framework adapter를 소유하고, collector script와 dashboard도 이 저장소에서 관리합니다.
+`post_training_telemetry.metrics`는 framework를 import하지 않는 공용 SDK이며 `Metric`, `MetricEmitter`, Prometheus textfile 변환을 소유합니다.
+`post_training_telemetry.adapters`는 framework adapter를 소유하고, collector script와 dashboard도 이 저장소에서 관리합니다.
 Backend launcher는 이 저장소를 사용하는 application 저장소(예: `post-training-lab`)가 관리합니다.
 vLLM과 Ray가 제공하는 native exporter는 SDK에 포함하지 않습니다.
 
 ## Use the Built-in Training Adapters
 
 `post-training-lab`의 공통 experiment runner로 TRL이나 Megatron을 실행하면 별도 Python 코드 없이 metric 수집이 활성화됩니다.
-Runner가 `OBSERVATORY_RUN_ID`를 설정하고 각 backend launcher가 `<output>/observatory-metrics/`를 사용합니다.
+Runner가 `TELEMETRY_RUN_ID`를 설정하고 각 backend launcher가 `<output>/telemetry-metrics/`를 사용합니다.
 
 TRL과 Megatron은 다음 metric을 기본 기록합니다.
 
@@ -26,7 +26,7 @@ TRL과 Megatron은 다음 metric을 기본 기록합니다.
 Hugging Face `Trainer`를 직접 만드는 application은 공용 adapter를 callback으로 전달합니다.
 
 ```python
-from profiling_lab.adapters.hf_trainer import make_trainer_callback
+from post_training_telemetry.adapters.hf_trainer import make_trainer_callback
 
 callback = make_trainer_callback(producer="my-agent-app")
 trainer_kwargs = {
@@ -49,14 +49,14 @@ trainer = SFTTrainer(**trainer_kwargs)
 
 ```bash
 export PYTHONPATH="/path/to/post-training-telemetry${PYTHONPATH:+:$PYTHONPATH}"
-export OBSERVATORY_RUN_ID="agentic-rl-001"
-export OBSERVATORY_METRICS_DIR="/path/to/output/observatory-metrics"
+export TELEMETRY_RUN_ID="agentic-rl-001"
+export TELEMETRY_METRICS_DIR="/path/to/output/telemetry-metrics"
 ```
 
 Application 시작 시 emitter를 한 번 만들고 step이나 episode가 끝날 때 최신 snapshot을 기록합니다.
 
 ```python
-from observatory_metrics import Metric, MetricEmitter
+from post_training_telemetry.metrics import Metric, MetricEmitter
 
 emitter = MetricEmitter.from_env(
     producer="verl",
@@ -104,13 +104,13 @@ Metric 기록이 실패하면 emitter가 한 번 경고한 뒤 비활성화되�
 cd /path/to/post-training-telemetry
 NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
-OBSERVATORY_METRICS_DIR='/path/to/output/observatory-metrics' \
+TELEMETRY_METRICS_DIR='/path/to/output/telemetry-metrics' \
 DURATION=3600 \
   bash scripts/run_telemetry.sh node
 ```
 
-Collector는 2초마다 snapshot을 `observatory.prom`으로 변환합니다.
-주기를 바꾸려면 `OBSERVATORY_METRICS_INTERVAL`을 초 단위로 설정합니다.
+Collector는 2초마다 snapshot을 `application.prom`으로 변환합니다.
+주기를 바꾸려면 `TELEMETRY_METRICS_INTERVAL`을 초 단위로 설정합니다.
 
 여러 node가 하나의 NFS metrics 디렉터리를 읽으면 같은 worker가 여러 Prometheus instance에 중복됩니다.
 각 node의 application과 collector는 같은 node-local 디렉터리를 사용합니다.
@@ -120,7 +120,7 @@ Collector는 2초마다 snapshot을 `observatory.prom`으로 변환합니다.
 Collector 없이도 output directory에서 마지막 snapshot을 확인할 수 있습니다.
 
 ```bash
-PYTHONPATH=. python -m profiling_lab.show_run /path/to/output
+PYTHONPATH=. python -m post_training_telemetry.show_run /path/to/output
 ```
 
 정상이라면 다음과 같이 producer, role, worker와 마지막 metric이 표시됩니다.

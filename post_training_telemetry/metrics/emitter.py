@@ -69,13 +69,13 @@ class MetricEmitter:
         role: str,
         worker_id: str | None = None,
     ) -> MetricEmitter | None:
-        directory = os.environ.get("OBSERVATORY_METRICS_DIR")
-        run_id = os.environ.get("OBSERVATORY_RUN_ID")
+        directory = os.environ.get("TELEMETRY_METRICS_DIR")
+        run_id = os.environ.get("TELEMETRY_RUN_ID")
         if not directory and not run_id:
             return None
         if not directory or not run_id:
             print(
-                "[metrics] OBSERVATORY_METRICS_DIR and OBSERVATORY_RUN_ID must be set together",
+                "[metrics] TELEMETRY_METRICS_DIR and TELEMETRY_RUN_ID must be set together",
                 file=sys.stderr,
             )
             return None

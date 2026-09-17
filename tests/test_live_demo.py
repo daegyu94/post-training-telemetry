@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from profiling_lab.live_demo import Demo, prometheus_config
+from post_training_telemetry.live_demo import Demo, prometheus_config
 
 
 ROOT = Path(__file__).parents[1]
@@ -14,7 +14,7 @@ def test_demo_matches_the_b300_and_storage_topology() -> None:
     topology = demo.metrics("topology")
     config = prometheus_config(demo, "127.0.0.1:19110")
 
-    assert len([sample for sample in gpu if sample.name == "profiling_gpu_utilization_percent"]) == 8
+    assert len([sample for sample in gpu if sample.name == "telemetry_gpu_utilization_percent"]) == 8
     assert len([sample for sample in storage if sample.name == "smartctl_device"]) == 4
     assert len([sample for sample in topology if sample.labels.get("role") == "B300"]) == 32
     assert len([sample for sample in topology if sample.labels.get("role") == "ssd"]) == 32

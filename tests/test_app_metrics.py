@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from observatory_metrics import Metric, MetricEmitter
+from post_training_telemetry.metrics import Metric, MetricEmitter
 
 
 def test_emitter_replaces_worker_snapshot_atomically(tmp_path: Path) -> None:
@@ -65,7 +65,7 @@ def test_emitter_disables_after_invalid_sample(tmp_path: Path, capsys) -> None:
 
 
 def test_from_env_requires_both_settings(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("OBSERVATORY_RUN_ID", "run-1")
+    monkeypatch.setenv("TELEMETRY_RUN_ID", "run-1")
 
     assert MetricEmitter.from_env(producer="trl", role="trainer") is None
     assert "must be set together" in capsys.readouterr().err

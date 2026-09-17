@@ -46,7 +46,7 @@ def test_telemetry_dashboards_have_unique_uids_and_shared_cluster_filter() -> No
         "SSD inventory and SMART status",
     } <= storage_titles
     matrix = payloads[1]["panels"][0]
-    assert "profiling_gpu_sample_timestamp_seconds" in matrix["targets"][0]["expr"]
+    assert "telemetry_gpu_sample_timestamp_seconds" in matrix["targets"][0]["expr"]
     assert matrix["transformations"][0]["options"]["rowField"] == "node"
 
     logs = json.loads(
@@ -349,14 +349,14 @@ def test_dashboards_keep_matrix_and_freshness_scopes_separate() -> None:
             for target in panel.get("targets", []):
                 expr = target["expr"]
                 assert 'cluster=~"$cluster"' in expr
-                if "profiling_topology_" in expr:
+                if "telemetry_topology_" in expr:
                     assert "max by (cluster," in expr
                     assert '$node' not in expr  # The publisher need not be the selected node.
                 if "$training_max_age" in expr:
                     assert variables["training_max_age"]["current"]["value"] == "300"
                     assert "and on(cluster, instance, run_id, producer, role, worker_id, node, local_rank)" in expr
-                if "profiling_gpu_" in expr and "sample age" not in panel["title"].lower():
-                    assert "profiling_gpu_sample_timestamp_seconds" in expr
+                if "telemetry_gpu_" in expr and "sample age" not in panel["title"].lower():
+                    assert "telemetry_gpu_sample_timestamp_seconds" in expr
                     assert "< 30" in expr
             if panel["title"] == "GPU allocation matrix":
                 expr = panel["targets"][0]["expr"]

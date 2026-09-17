@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from run_summary import make_run_summary
+from post_training_telemetry.run_summary import make_run_summary
 
 
 TARGET_FILES = ("applications.json", "gpus.json", "nodes.json")

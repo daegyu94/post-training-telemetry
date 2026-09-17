@@ -9,7 +9,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from observatory_metrics.prometheus import GaugeSample, write_gauges
+from post_training_telemetry.metrics.prometheus import GaugeSample, write_gauges
 
 
 def optional_number(value: str) -> float | None:
@@ -66,15 +66,15 @@ def main():
             output.write(json.dumps(value) + "\n")
             output.flush()
             if args.textfile_dir:
-                samples = [GaugeSample("profiling_gpu_sample_timestamp_seconds", "Last successful GPU sample.", value["timestamp"])]
+                samples = [GaugeSample("telemetry_gpu_sample_timestamp_seconds", "Last successful GPU sample.", value["timestamp"])]
                 for gpu in value["gpus"]:
                     for field, name in [("utilization.gpu", "utilization_percent"), ("power.draw", "power_watts"), ("temperature.gpu", "temperature_celsius"), ("clocks.sm", "sm_clock_mhz")]:
                         if gpu[field] is not None:
-                            samples.append(GaugeSample(f"profiling_gpu_{name}", f"nvidia-smi {field}.", gpu[field], {"gpu": str(int(gpu["index"]))}))
+                            samples.append(GaugeSample(f"telemetry_gpu_{name}", f"nvidia-smi {field}.", gpu[field], {"gpu": str(int(gpu["index"]))}))
                 for process in value["compute_processes"]:
                     if process["used_gpu_memory_mib"] is not None:
                         samples.append(GaugeSample(
-                            "profiling_gpu_process_memory_bytes",
+                            "telemetry_gpu_process_memory_bytes",
                             "nvidia-smi compute-process GPU memory; not total unified memory.",
                             process["used_gpu_memory_mib"] * 1024**2,
                             {"pid": str(process["pid"]), "gpu_uuid": process["gpu_uuid"]},

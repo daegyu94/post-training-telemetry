@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from observatory_metrics import textfile
-from observatory_metrics.textfile import _iter_snapshots, build_metrics
+from post_training_telemetry.metrics import textfile
+from post_training_telemetry.metrics.textfile import _iter_snapshots, build_metrics
 
 
 SNAPSHOT = {
@@ -71,7 +71,7 @@ def test_collector_runs_multiple_refreshes(tmp_path: Path, monkeypatch) -> None:
     observed = []
 
     def tick(interval):
-        observed.append((output / "observatory.prom").read_text())
+        observed.append((output / "application.prom").read_text())
         if len(observed) == 2:
             raise KeyboardInterrupt
         snapshot_path.write_text(json.dumps(SNAPSHOT | {"step": 8}), encoding="utf-8")

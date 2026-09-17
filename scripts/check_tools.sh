@@ -7,4 +7,4 @@ if [[ ! -d .venv ]]; then
 fi
 
 . .venv/bin/activate
-python -m profiling_lab.tool_check
+python -m post_training_telemetry.tool_check

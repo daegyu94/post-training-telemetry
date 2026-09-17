@@ -47,10 +47,10 @@ def summarize(output_dir: Path) -> str:
         lines.append(f"\n[{path.name}]")
         lines.extend(_flatten(data))
 
-    metrics_dir = output_dir / "observatory-metrics"
+    metrics_dir = output_dir / "telemetry-metrics"
     metrics_files = sorted(metrics_dir.glob("*.json")) if metrics_dir.is_dir() else []
     if not metrics_files:
-        lines.append("\n(no observatory-metrics -- metrics were not enabled for this run)")
+        lines.append("\n(no telemetry-metrics -- metrics were not enabled for this run)")
     for path in metrics_files:
         snapshot = _load(path)
         if snapshot is None or snapshot.get("schema_version") != 2:
