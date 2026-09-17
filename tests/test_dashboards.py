@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 
-ROOT = Path(__file__).parents[2]
+ROOT = Path(__file__).parents[1]
 DASHBOARDS = (
     "run-overview.json",
     "compute-communication.json",
@@ -12,21 +12,21 @@ DASHBOARDS = (
 )
 
 
-def test_observability_dashboards_have_unique_uids_and_shared_cluster_filter() -> None:
+def test_telemetry_dashboards_have_unique_uids_and_shared_cluster_filter() -> None:
     payloads = [
-        json.loads((ROOT / "observability" / "examples" / "observability" / name).read_text())
+        json.loads((ROOT / "examples" / "dashboards" / name).read_text())
         for name in DASHBOARDS
     ]
 
     assert [payload["uid"] for payload in payloads] == [
-        "observability-overview",
+        "telemetry-overview",
         "post-training-compute-communication",
         "post-training-data-storage",
     ]
     for payload in payloads:
         assert {item["name"] for item in payload["templating"]["list"]} >= {"cluster", "node"}
         assert all(
-            panel.get("datasource", {}).get("uid") == "observability-prometheus"
+            panel.get("datasource", {}).get("uid") == "telemetry-prometheus"
             for panel in payload["panels"]
             if panel["type"] != "text"
         )
@@ -50,18 +50,18 @@ def test_observability_dashboards_have_unique_uids_and_shared_cluster_filter() -
     assert matrix["transformations"][0]["options"]["rowField"] == "node"
 
     logs = json.loads(
-        (ROOT / "observability/examples/observability/run-logs.json").read_text()
+        (ROOT / "examples/dashboards/run-logs.json").read_text()
     )
     assert logs["uid"] == "post-training-run-logs"
-    assert logs["panels"][0]["datasource"]["uid"] == "observability-loki"
+    assert logs["panels"][0]["datasource"]["uid"] == "telemetry-loki"
     assert "| unpack | run_id=~" in logs["panels"][0]["targets"][0]["expr"]
 
 
 def test_server_config_accepts_an_arbitrary_named_target_list(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     environment = os.environ | {
         "CLUSTER_NAME": "next-cluster",
-        "OBSERVABILITY_TARGETS": "trainer-0=10.0.0.10,rollout-0=rollout.example",
+        "TELEMETRY_TARGETS": "trainer-0=10.0.0.10,rollout-0=rollout.example",
         "STORAGE_TARGETS": "storage-0=10.0.1.10,storage-1=storage.example",
         "STORAGE_SYSTEM": "3fs",
         "SERVER_CONFIG_ONLY": "1",
@@ -95,9 +95,9 @@ def test_server_config_accepts_an_arbitrary_named_target_list(tmp_path: Path) ->
 
 
 def test_server_config_rejects_duplicate_target_names(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     environment = os.environ | {
-        "OBSERVABILITY_TARGETS": "worker=10.0.0.10,worker=10.0.0.11",
+        "TELEMETRY_TARGETS": "worker=10.0.0.10,worker=10.0.0.11",
         "SERVER_CONFIG_ONLY": "1",
         "OUTPUT_DIR": str(tmp_path / "monitoring"),
     }
@@ -116,14 +116,14 @@ def test_server_config_rejects_duplicate_target_names(tmp_path: Path) -> None:
 
 
 def test_server_log_config_provisions_loki_and_dashboard(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     loki = tmp_path / "loki"
     loki.write_text("#!/usr/bin/env bash\nexit 0\n")
     loki.chmod(0o755)
     output = tmp_path / "monitoring"
     environment = os.environ | {
         "CLUSTER_NAME": "spark-cluster",
-        "OBSERVABILITY_TARGETS": "spark1=10.0.0.10,spark2=10.0.0.11",
+        "TELEMETRY_TARGETS": "spark1=10.0.0.10,spark2=10.0.0.11",
         "ENABLE_LOGS": "1",
         "LOKI": str(loki),
         "LOKI_LISTEN_ADDR": "192.168.0.1",
@@ -143,7 +143,7 @@ def test_server_log_config_provisions_loki_and_dashboard(tmp_path: Path) -> None
     assert result.returncode == 0, result.stderr
     assert "http_listen_address: 192.168.0.1" in (output / "loki.yaml").read_text()
     assert "retention_period: 168h" in (output / "loki.yaml").read_text()
-    assert "uid: observability-loki" in (
+    assert "uid: telemetry-loki" in (
         output / "provisioning/datasources/default.yaml"
     ).read_text()
     assert "url: http://192.168.0.1:13100" in (
@@ -153,7 +153,7 @@ def test_server_log_config_provisions_loki_and_dashboard(tmp_path: Path) -> None
 
 
 def test_node_log_config_accepts_multiple_local_workload_roots(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     alloy = tmp_path / "alloy"
     alloy.write_text("#!/usr/bin/env bash\nexit 0\n")
     alloy.chmod(0o755)
@@ -167,7 +167,7 @@ def test_node_log_config_accepts_multiple_local_workload_roots(tmp_path: Path) -
         "NODE_NAME": "spark1",
         "CLUSTER_NAME": "spark-cluster",
         "LOKI_PUSH_URL": "http://192.168.0.1:13100/loki/api/v1/push",
-        "OBSERVABILITY_LOG_ROOTS": f"trl={trl},verl={verl}",
+        "TELEMETRY_LOG_ROOTS": f"trl={trl},verl={verl}",
         "ALLOY": str(alloy),
         "NODE_CONFIG_ONLY": "1",
         "OUTPUT_DIR": str(output),
@@ -193,7 +193,7 @@ def test_node_log_config_accepts_multiple_local_workload_roots(tmp_path: Path) -
 
 
 def test_node_log_config_rejects_nfs_roots(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     findmnt = bin_dir / "findmnt"
@@ -209,7 +209,7 @@ def test_node_log_config_rejects_nfs_roots(tmp_path: Path) -> None:
             "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"],
             "NODE_ADDR": "127.0.0.1",
             "LOKI_PUSH_URL": "http://192.168.0.1:13100/loki/api/v1/push",
-            "OBSERVABILITY_LOG_ROOTS": f"trl={root}",
+            "TELEMETRY_LOG_ROOTS": f"trl={root}",
             "NODE_CONFIG_ONLY": "1",
             "OUTPUT_DIR": str(tmp_path / "monitoring"),
         },
@@ -223,7 +223,7 @@ def test_node_log_config_rejects_nfs_roots(tmp_path: Path) -> None:
 
 
 def test_storage_role_starts_smartctl_exporter_with_slow_polling(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     smartctl = tmp_path / "smartctl"
     exporter = tmp_path / "smartctl_exporter"
     arguments = tmp_path / "arguments.txt"
@@ -263,7 +263,7 @@ def test_storage_role_wraps_smartctl_with_sudo_when_forced(tmp_path: Path) -> No
     # as a plain user. SMARTCTL_SUDO=1
     # forces the sudo wrapper without depending on the test host's own sudo
     # configuration.
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     smartctl = tmp_path / "smartctl"
     exporter = tmp_path / "smartctl_exporter"
     arguments = tmp_path / "arguments.txt"
@@ -304,7 +304,7 @@ def test_storage_role_wraps_smartctl_with_sudo_when_forced(tmp_path: Path) -> No
 
 
 def test_storage_role_skips_sudo_when_smartctl_already_has_permission(tmp_path: Path) -> None:
-    script = ROOT / "observability" / "scripts" / "run_observability.sh"
+    script = ROOT / "scripts" / "run_telemetry.sh"
     smartctl = tmp_path / "smartctl"
     exporter = tmp_path / "smartctl_exporter"
     arguments = tmp_path / "arguments.txt"
@@ -343,7 +343,7 @@ def test_storage_role_skips_sudo_when_smartctl_already_has_permission(tmp_path: 
 def test_dashboards_keep_matrix_and_freshness_scopes_separate() -> None:
     """A fresh rank/cluster must not mask another rank's stale or colliding cell."""
     for name in DASHBOARDS:
-        payload = json.loads((ROOT / "observability/examples/observability" / name).read_text())
+        payload = json.loads((ROOT / "examples/dashboards" / name).read_text())
         variables = {v["name"]: v for v in payload["templating"]["list"]}
         for panel in payload["panels"]:
             for target in panel.get("targets", []):
@@ -394,7 +394,7 @@ def test_storage_role_fails_before_exporter_when_sudo_denied(tmp_path: Path) -> 
         "MARKER": str(marker),
     }
     result = subprocess.run(
-        ["bash", str(ROOT / "observability/scripts/run_observability.sh"), "storage"],
+        ["bash", str(ROOT / "scripts/run_telemetry.sh"), "storage"],
         env=env,
         capture_output=True,
         text=True,
@@ -407,7 +407,7 @@ def test_storage_role_fails_before_exporter_when_sudo_denied(tmp_path: Path) -> 
 
 def test_healthy_ssd_count_preserves_zero_without_faking_missing_data() -> None:
     dashboard = json.loads(
-        (ROOT / "observability/examples/observability/data-storage.json").read_text()
+        (ROOT / "examples/dashboards/data-storage.json").read_text()
     )
     panel = next(p for p in dashboard["panels"] if p["title"] == "SSDs with critical warnings")
     expr = panel["targets"][0]["expr"]

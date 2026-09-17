@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from profiling_lab import observability
+from profiling_lab import stack
 
 
 def write_targets(directory: Path) -> None:
@@ -23,7 +23,7 @@ def write_targets(directory: Path) -> None:
 def test_validate_target_files_counts_valid_groups(tmp_path: Path) -> None:
     write_targets(tmp_path)
 
-    assert observability.validate_target_files(tmp_path) == {
+    assert stack.validate_target_files(tmp_path) == {
         "files": 3,
         "groups": 2,
         "targets": 2,
@@ -38,7 +38,7 @@ def test_validate_target_files_rejects_non_string_labels(tmp_path: Path) -> None
     )
 
     with pytest.raises(ValueError, match="labels must be strings"):
-        observability.validate_target_files(tmp_path)
+        stack.validate_target_files(tmp_path)
 
 
 def test_summarize_prometheus_targets_counts_health() -> None:
@@ -53,7 +53,7 @@ def test_summarize_prometheus_targets_counts_health() -> None:
         },
     }
 
-    assert observability.summarize_prometheus_targets(payload) == {
+    assert stack.summarize_prometheus_targets(payload) == {
         "configured": 3,
         "up": 1,
         "down": 2,
@@ -69,7 +69,7 @@ def test_validate_stack_writes_failure_summary(
     def fail_readiness(url: str, timeout: float) -> None:
         raise RuntimeError(f"unavailable: {url}")
 
-    monkeypatch.setattr(observability, "_wait_until_ready", fail_readiness)
+    monkeypatch.setattr(stack, "_wait_until_ready", fail_readiness)
     args = Namespace(
         target_dir=None,
         prometheus_url="http://127.0.0.1:9090",
@@ -79,7 +79,7 @@ def test_validate_stack_writes_failure_summary(
         require_targets_up=False,
     )
 
-    assert observability.validate_stack(args) == 1
+    assert stack.validate_stack(args) == 1
     summary = json.loads(output.read_text(encoding="utf-8"))
     assert summary["schema_version"] == 1
     assert not summary["validation"]["stack_valid"]
@@ -101,7 +101,7 @@ def test_validate_stack_applies_target_health_policy(
     output = tmp_path / "summary.json"
 
     monkeypatch.setattr(
-        observability,
+        stack,
         "_wait_until_ready",
         lambda url, timeout: None,
     )
@@ -121,7 +121,7 @@ def test_validate_stack_applies_target_health_policy(
             }
         return {"status": "success", "data": {"result": []}}
 
-    monkeypatch.setattr(observability, "_read_json", read_json)
+    monkeypatch.setattr(stack, "_read_json", read_json)
     args = Namespace(
         target_dir=target_dir,
         prometheus_url="http://127.0.0.1:9090",
@@ -131,7 +131,7 @@ def test_validate_stack_applies_target_health_policy(
         require_targets_up=require_targets_up,
     )
 
-    assert observability.validate_stack(args) == expected_status
+    assert stack.validate_stack(args) == expected_status
     summary = json.loads(output.read_text(encoding="utf-8"))
     assert summary["validation"]["stack_valid"] is (expected_status == 0)
     assert summary["validation"]["prometheus_targets"] == {
@@ -148,7 +148,7 @@ def test_validate_stack_checks_loki_when_requested(
     output = tmp_path / "summary.json"
     checked: list[str] = []
     monkeypatch.setattr(
-        observability,
+        stack,
         "_wait_until_ready",
         lambda url, timeout: checked.append(url),
     )
@@ -162,7 +162,7 @@ def test_validate_stack_checks_loki_when_requested(
             return {"status": "success", "data": {"activeTargets": []}}
         return {"status": "success", "data": {"result": []}}
 
-    monkeypatch.setattr(observability, "_read_json", read_json)
+    monkeypatch.setattr(stack, "_read_json", read_json)
     args = Namespace(
         target_dir=None,
         prometheus_url="http://127.0.0.1:9090",
@@ -173,7 +173,7 @@ def test_validate_stack_checks_loki_when_requested(
         require_targets_up=False,
     )
 
-    assert observability.validate_stack(args) == 0
+    assert stack.validate_stack(args) == 0
     assert "http://127.0.0.1:3100/ready" in checked
     summary = json.loads(output.read_text(encoding="utf-8"))
     assert summary["validation"]["loki_enabled"]

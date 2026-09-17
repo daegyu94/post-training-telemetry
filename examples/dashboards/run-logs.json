@@ -9,14 +9,14 @@
       "keepTime": true,
       "title": "Run Overview",
       "type": "link",
-      "url": "/d/observability-overview?${cluster:queryparam}&${node:queryparam}&${run_id:queryparam}"
+      "url": "/d/telemetry-overview?${cluster:queryparam}&${node:queryparam}&${run_id:queryparam}"
     }
   ],
   "panels": [
     {
       "datasource": {
         "type": "loki",
-        "uid": "observability-loki"
+        "uid": "telemetry-loki"
       },
       "gridPos": {
         "h": 20,
@@ -50,7 +50,7 @@
   "schemaVersion": 41,
   "tags": [
     "logs",
-    "observability",
+    "telemetry",
     "post-training"
   ],
   "templating": {
@@ -63,7 +63,7 @@
         },
         "datasource": {
           "type": "loki",
-          "uid": "observability-loki"
+          "uid": "telemetry-loki"
         },
         "definition": "label_values(cluster)",
         "includeAll": true,
@@ -82,7 +82,7 @@
         },
         "datasource": {
           "type": "loki",
-          "uid": "observability-loki"
+          "uid": "telemetry-loki"
         },
         "definition": "label_values({cluster=~\"$cluster\"}, node)",
         "includeAll": true,
@@ -101,7 +101,7 @@
         },
         "datasource": {
           "type": "loki",
-          "uid": "observability-loki"
+          "uid": "telemetry-loki"
         },
         "definition": "label_values({cluster=~\"$cluster\", node=~\"$node\"}, workload)",
         "includeAll": true,

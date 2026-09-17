@@ -11,7 +11,7 @@ case "$mode" in baseline|capture|collective) ;; *) echo 'Use baseline, capture, 
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
 export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
-output_dir="${OUTPUT_DIR:-artifacts/observability/$PROFILE_RUN_ID/$mode}"
+output_dir="${OUTPUT_DIR:-artifacts/telemetry/$PROFILE_RUN_ID/$mode}"
 mkdir -p "$output_dir"
 "$PYTHON" - <<'PY'
 import os

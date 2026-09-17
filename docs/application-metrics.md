@@ -6,12 +6,13 @@ Application은 로컬 JSON snapshot만 갱신하고, 별도 collector가 이를 
 ## Package Boundaries
 
 `observatory_metrics`는 framework를 import하지 않는 공용 SDK이며 `Metric`, `MetricEmitter`, Prometheus textfile 변환을 소유합니다.
-`profiling_lab.adapters`는 이 저장소의 framework adapter를 소유하고, backend launcher와 dashboard도 이 저장소에서 관리합니다.
+`profiling_lab.adapters`는 framework adapter를 소유하고, collector script와 dashboard도 이 저장소에서 관리합니다.
+Backend launcher는 이 저장소를 사용하는 application 저장소(예: `post-training-lab`)가 관리합니다.
 vLLM과 Ray가 제공하는 native exporter는 SDK에 포함하지 않습니다.
 
 ## Use the Built-in Training Adapters
 
-공통 experiment runner로 TRL이나 Megatron을 실행하면 별도 Python 코드 없이 metric 수집이 활성화됩니다.
+`post-training-lab`의 공통 experiment runner로 TRL이나 Megatron을 실행하면 별도 Python 코드 없이 metric 수집이 활성화됩니다.
 Runner가 `OBSERVATORY_RUN_ID`를 설정하고 각 backend launcher가 `<output>/observatory-metrics/`를 사용합니다.
 
 TRL과 Megatron은 다음 metric을 기본 기록합니다.
@@ -39,15 +40,15 @@ if callback is not None:
 trainer = SFTTrainer(**trainer_kwargs)
 ```
 
-`execution_feedback.train`의 SFT와 DPO 경로도 이 adapter를 사용합니다.
+`post-training-lab`의 `execution_feedback.train` SFT와 DPO 경로도 이 adapter를 사용합니다.
 
 ## Instrument a Custom Loop
 
-먼저 application process에서 observability package와 출력 위치를 지정합니다.
+먼저 application process에서 이 저장소를 `PYTHONPATH`에 추가하고 출력 위치를 지정합니다.
 `worker_id`별 파일을 쓰므로 같은 디렉터리를 사용하는 worker에는 서로 다른 ID가 필요합니다.
 
 ```bash
-export PYTHONPATH="/path/to/post-training-lab/observability${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="/path/to/post-training-telemetry${PYTHONPATH:+:$PYTHONPATH}"
 export OBSERVATORY_RUN_ID="agentic-rl-001"
 export OBSERVATORY_METRICS_DIR="/path/to/output/observatory-metrics"
 ```
@@ -100,12 +101,12 @@ Metric 기록이 실패하면 emitter가 한 번 경고한 뒤 비활성화되�
 각 compute node에서 application과 같은 node-local metrics 디렉터리를 collector에 전달합니다.
 
 ```bash
-cd /path/to/post-training-lab/observability
+cd /path/to/post-training-telemetry
 NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
 OBSERVATORY_METRICS_DIR='/path/to/output/observatory-metrics' \
 DURATION=3600 \
-  bash scripts/run_observability.sh node
+  bash scripts/run_telemetry.sh node
 ```
 
 Collector는 2초마다 snapshot을 `observatory.prom`으로 변환합니다.
@@ -119,7 +120,7 @@ Collector는 2초마다 snapshot을 `observatory.prom`으로 변환합니다.
 Collector 없이도 output directory에서 마지막 snapshot을 확인할 수 있습니다.
 
 ```bash
-PYTHONPATH=observability python -m profiling_lab.show_run /path/to/output
+PYTHONPATH=. python -m profiling_lab.show_run /path/to/output
 ```
 
 정상이라면 다음과 같이 producer, role, worker와 마지막 metric이 표시됩니다.

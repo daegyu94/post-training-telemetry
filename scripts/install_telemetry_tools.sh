@@ -8,7 +8,7 @@ case "$machine" in
   x86_64|amd64) release_arch=amd64 ;;
   *) echo "Unsupported architecture: $machine (expected ARM64 or x86_64)" >&2; exit 2 ;;
 esac
-tools_dir="${TOOLS_DIR:-$HOME/.local/share/observability-tools}"
+tools_dir="${TOOLS_DIR:-$HOME/.local/share/telemetry-tools}"
 role="${1:-node}"
 mkdir -p "$tools_dir"
 cd "$tools_dir"

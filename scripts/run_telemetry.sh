@@ -11,8 +11,8 @@ case "$machine" in
   *) echo "Unsupported architecture: $machine (expected ARM64 or x86_64)" >&2; exit 2 ;;
 esac
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
-tools_dir="${TOOLS_DIR:-$HOME/.local/share/observability-tools}"
-output_dir="${OUTPUT_DIR:-$PWD/artifacts/observability/monitoring-$(hostname)}"
+tools_dir="${TOOLS_DIR:-$HOME/.local/share/telemetry-tools}"
+output_dir="${OUTPUT_DIR:-$PWD/artifacts/telemetry/monitoring-$(hostname)}"
 mkdir -p "$output_dir"
 output_dir="$(cd "$output_dir" && pwd)"
 pids=()
@@ -81,10 +81,10 @@ start_smartctl_exporter() {
 }
 if [[ "$role" == node ]]; then
   : "${NODE_ADDR:?Set NODE_ADDR to this node management address}"
-  if [[ -n "${LOKI_PUSH_URL:-}" || -n "${OBSERVABILITY_LOG_ROOTS:-}" ]]; then
-    : "${LOKI_PUSH_URL:?Set LOKI_PUSH_URL when OBSERVABILITY_LOG_ROOTS is set}"
-    : "${OBSERVABILITY_LOG_ROOTS:?Set OBSERVABILITY_LOG_ROOTS when LOKI_PUSH_URL is set}"
-    cluster_name="${CLUSTER_NAME:-observability-cluster}"
+  if [[ -n "${LOKI_PUSH_URL:-}" || -n "${TELEMETRY_LOG_ROOTS:-}" ]]; then
+    : "${LOKI_PUSH_URL:?Set LOKI_PUSH_URL when TELEMETRY_LOG_ROOTS is set}"
+    : "${TELEMETRY_LOG_ROOTS:?Set TELEMETRY_LOG_ROOTS when LOKI_PUSH_URL is set}"
+    cluster_name="${CLUSTER_NAME:-telemetry-cluster}"
     node_name="${NODE_NAME:-$(hostname -s)}"
     if [[ ! "$cluster_name" =~ ^[A-Za-z0-9_.-]+$ || ! "$node_name" =~ ^[A-Za-z0-9_.-]+$ ]]; then
       echo "CLUSTER_NAME and NODE_NAME must contain only letters, digits, dots, underscores, or hyphens" >&2
@@ -94,7 +94,7 @@ if [[ "$role" == node ]]; then
       echo "LOKI_PUSH_URL must be an HTTP(S) URL without spaces or quotes" >&2
       exit 2
     fi
-    IFS=',' read -r -a log_roots <<< "$OBSERVABILITY_LOG_ROOTS"
+    IFS=',' read -r -a log_roots <<< "$TELEMETRY_LOG_ROOTS"
     cat > "$output_dir/alloy.alloy" <<EOF
 logging {
   level = "info"
@@ -108,11 +108,11 @@ EOF
       workload="${entry%%=*}"
       root="${entry#*=}"
       if [[ "$workload" == "$entry" || ! "$workload" =~ ^[A-Za-z0-9_.-]+$ || "$root" != /* || ! -d "$root" ]]; then
-        echo "OBSERVABILITY_LOG_ROOTS entries must be workload=/existing/absolute/local/path" >&2
+        echo "TELEMETRY_LOG_ROOTS entries must be workload=/existing/absolute/local/path" >&2
         exit 2
       fi
       if [[ " $seen_workloads " == *" $workload "* ]]; then
-        echo "OBSERVABILITY_LOG_ROOTS workload names must be unique: $workload" >&2
+        echo "TELEMETRY_LOG_ROOTS workload names must be unique: $workload" >&2
         exit 2
       fi
       fs_type="$(findmnt -T "$root" -n -o FSTYPE)"
@@ -205,7 +205,7 @@ EOF
 elif [[ "$role" == storage ]]; then
   start_smartctl_exporter
 elif [[ "$role" == server ]]; then
-  cluster_name="${CLUSTER_NAME:-observability-cluster}"
+  cluster_name="${CLUSTER_NAME:-telemetry-cluster}"
   if [[ ! "$cluster_name" =~ ^[A-Za-z0-9_.-]+$ ]]; then
     echo "CLUSTER_NAME must contain only letters, digits, dots, underscores, or hyphens" >&2
     exit 2
@@ -213,8 +213,8 @@ elif [[ "$role" == server ]]; then
   if [[ "${DEMO_LIVE:-0}" == 1 ]]; then
     targets=()
   else
-    : "${OBSERVABILITY_TARGETS:?Set OBSERVABILITY_TARGETS to comma-separated node=address targets}"
-    IFS=',' read -r -a targets <<< "$OBSERVABILITY_TARGETS"
+    : "${TELEMETRY_TARGETS:?Set TELEMETRY_TARGETS to comma-separated node=address targets}"
+    IFS=',' read -r -a targets <<< "$TELEMETRY_TARGETS"
   fi
   mkdir -p "$output_dir/provisioning/datasources" "$output_dir/provisioning/dashboards" "$output_dir/dashboards"
   if [[ "${DEMO_LIVE:-0}" == 1 ]]; then
@@ -234,7 +234,7 @@ elif [[ "$role" == server ]]; then
 global:
   scrape_interval: 2s
 scrape_configs:
-  - job_name: observability
+  - job_name: telemetry
     static_configs:
 EOF
   seen_nodes=""
@@ -242,11 +242,11 @@ EOF
     node="${target%%=*}"
     address="${target#*=}"
     if [[ "$node" == "$target" || ! "$node" =~ ^[A-Za-z0-9_.-]+$ || ! "$address" =~ ^[A-Za-z0-9_.-]+$ ]]; then
-      echo "OBSERVABILITY_TARGETS entries must be node=address with letters, digits, dots, underscores, or hyphens" >&2
+      echo "TELEMETRY_TARGETS entries must be node=address with letters, digits, dots, underscores, or hyphens" >&2
       exit 2
     fi
     if [[ " $seen_nodes " == *" $node "* ]]; then
-      echo "OBSERVABILITY_TARGETS node names must be unique: $node" >&2
+      echo "TELEMETRY_TARGETS node names must be unique: $node" >&2
       exit 2
     fi
     seen_nodes+=" $node"
@@ -306,7 +306,7 @@ EOF
 apiVersion: 1
 datasources:
   - name: Prometheus
-    uid: observability-prometheus
+    uid: telemetry-prometheus
     type: prometheus
     access: proxy
     url: http://127.0.0.1:19090
@@ -320,7 +320,7 @@ EOF
     fi
     cat >> "$output_dir/provisioning/datasources/default.yaml" <<EOF
   - name: Loki
-    uid: observability-loki
+    uid: telemetry-loki
     type: loki
     access: proxy
     url: http://$loki_listen_addr:13100
@@ -368,14 +368,14 @@ EOF
   cat > "$output_dir/provisioning/dashboards/default.yaml" <<EOF
 apiVersion: 1
 providers:
-  - name: Observability
+  - name: Telemetry
     type: file
     options:
       path: $output_dir/dashboards
 EOF
-  cp examples/observability/{run-overview,compute-communication,data-storage}.json "$output_dir/dashboards/"
+  cp examples/dashboards/{run-overview,compute-communication,data-storage}.json "$output_dir/dashboards/"
   if [[ "${ENABLE_LOGS:-0}" == 1 ]]; then
-    cp examples/observability/run-logs.json "$output_dir/dashboards/"
+    cp examples/dashboards/run-logs.json "$output_dir/dashboards/"
   fi
   if [[ "${SERVER_CONFIG_ONLY:-0}" == 1 ]]; then exit 0; fi
   "$tools_dir/prometheus-3.5.0.linux-$release_arch/prometheus" \

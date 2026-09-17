@@ -1,7 +1,7 @@
 # Metrics Contract
 
 Metrics Contract는 관측 데이터를 기록하고 비교할 때 사용할 이름·단위·측정 범위를 정의합니다.
-기준 파일은 [`config/metrics.json`](../../observability/config/metrics.json)이며, 서로 다른 collector와 application이 같은 의미의 값을 같은 방식으로 표현하도록 돕습니다.
+기준 파일은 [`config/metrics.json`](../config/metrics.json)이며, 서로 다른 collector와 application이 같은 의미의 값을 같은 방식으로 표현하도록 돕습니다.
 
 이 파일은 모든 metric을 자동으로 수집하거나 Prometheus 이름을 자동 변환하는 runtime registry가 아닙니다.
 현재 dashboard는 exporter의 원본 metric을 직접 조회하고, application metric은 textfile collector가 별도로 발행합니다.
@@ -13,7 +13,7 @@ Metrics Contract는 관측 데이터를 기록하고 비교할 때 사용할 이
 | Collector·application adapter 개발자 | 새 metric의 canonical name, unit, scope 결정 | 계약을 구현 기준으로 사용 |
 | Summary·분석 코드 개발자 | 서로 다른 run과 backend의 값을 같은 단위로 비교 | canonical vocabulary를 출력 기준으로 사용 |
 | Dashboard 작성자 | exporter 원본 metric의 의미와 변환 단위 확인 | 원본 Prometheus metric을 직접 query |
-| Schema validator·test | 계약 파일의 구조, 필수 field, 중복 검사 | [`schema.py`](../../observability/profiling_lab/schema.py)가 JSON을 검증 |
+| Schema validator·test | 계약 파일의 구조, 필수 field, 중복 검사 | [`schema.py`](../profiling_lab/schema.py)가 JSON을 검증 |
 
 즉, 계약은 생산자와 소비자가 따라야 할 공통 규칙입니다.
 metric을 실제로 수집하려면 collector나 adapter 구현이 별도로 필요합니다.
@@ -141,7 +141,7 @@ TRL·Megatron callback은 `<output>/observatory-metrics/`의 worker JSON을 atom
 Megatron 값은 variable-length 실행의 실제 non-padding token 처리율이 아닙니다.
 Megatron timer는 `timing_log_level=1`에서 계산된 rank-local `active_time` 차이를 읽으며 adapter 때문에 추가 collective를 실행하지 않습니다.
 
-[Selected-rank helper](../../observability/examples/pytorch/selected_rank_profiler.py)는 선택하지 않은 rank에 no-op profiler를 돌려줍니다.
+[Selected-rank helper](../examples/pytorch/selected_rank_profiler.py)는 선택하지 않은 rank에 no-op profiler를 돌려줍니다.
 다음 코드는 기존 PyTorch loop에 profiler를 삽입하는 예시입니다.
 
 ```python
@@ -166,7 +166,7 @@ shape·memory·stack 수집은 기본적으로 꺼져 있으며 필요한 질문
 비교할 rank는 같은 run과 capture 구간을 사용해야 합니다.
 원인을 수정한 뒤에는 profiler를 끈 실행에서 효과를 다시 검증합니다.
 
-[verl profiler 설정](../../observability/examples/verl/torch-profiler.yaml)은 외부 framework 연동 참고이며 이 저장소에 verl backend가 있다는 뜻이 아닙니다.
+[verl profiler 설정](../examples/verl/torch-profiler.yaml)은 외부 framework 연동 참고이며 이 저장소에 verl backend가 있다는 뜻이 아닙니다.
 
 ## Change and Validate the Contract
 
@@ -178,7 +178,7 @@ shape·memory·stack 수집은 기본적으로 꺼져 있으며 필요한 질문
 4. schema validation을 실행합니다.
 
 ```bash
-python -m pytest -q tests/observability/test_schema.py
+python -m pytest -q tests/test_schema.py
 ```
 
 검사는 JSON 문법, 허용된 이름·분류, 필수 field, 중복 이름을 확인합니다.

@@ -5,14 +5,14 @@ from profiling_lab.schema import load_schema
 
 
 def test_metric_schema_is_valid_and_unique() -> None:
-    schema = load_schema(Path(__file__).parents[2] / "observability" / "config" / "metrics.json")
+    schema = load_schema(Path(__file__).parents[1] / "config" / "metrics.json")
     names = [metric["name"] for metric in schema["metrics"]]
     assert len(names) == len(set(names))
     assert len(names) >= 80
 
 
 def test_metric_schema_covers_required_categories() -> None:
-    schema = load_schema(Path(__file__).parents[2] / "observability" / "config" / "metrics.json")
+    schema = load_schema(Path(__file__).parents[1] / "config" / "metrics.json")
     categories = {metric["category"] for metric in schema["metrics"]}
     assert {
         "training",
@@ -30,7 +30,7 @@ def test_metric_schema_covers_required_categories() -> None:
 
 
 def test_metric_schema_covers_phase_and_data_path_signals() -> None:
-    schema = load_schema(Path(__file__).parents[2] / "observability" / "config" / "metrics.json")
+    schema = load_schema(Path(__file__).parents[1] / "config" / "metrics.json")
     names = {metric["name"] for metric in schema["metrics"]}
     assert {
         "training_dataset_load_time_seconds",
@@ -64,7 +64,7 @@ def test_metric_schema_covers_phase_and_data_path_signals() -> None:
 
 def test_json_schema_documents_the_runtime_contract() -> None:
     contract = json.loads(
-        (Path(__file__).parents[2] / "observability" / "config" / "metrics.schema.json").read_text(
+        (Path(__file__).parents[1] / "config" / "metrics.schema.json").read_text(
             encoding="utf-8"
         )
     )

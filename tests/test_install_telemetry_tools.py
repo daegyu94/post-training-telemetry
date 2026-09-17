@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 
-ROOT = Path(__file__).parents[2]
+ROOT = Path(__file__).parents[1]
 
 
 @pytest.mark.parametrize(
@@ -37,7 +37,7 @@ def test_installer_selects_release_architecture(
 
     curl_log = tmp_path / "curl.log"
     result = subprocess.run(
-        ["bash", str(ROOT / "observability/scripts/install_observability_tools.sh"), "server"],
+        ["bash", str(ROOT / "scripts/install_telemetry_tools.sh"), "server"],
         env=os.environ
         | {
             "CURL_LOG": str(curl_log),
@@ -81,7 +81,7 @@ def test_node_installer_downloads_alloy(tmp_path: Path) -> None:
 
     curl_log = tmp_path / "curl.log"
     result = subprocess.run(
-        ["bash", str(ROOT / "observability/scripts/install_observability_tools.sh"), "node"],
+        ["bash", str(ROOT / "scripts/install_telemetry_tools.sh"), "node"],
         env=os.environ
         | {
             "CURL_LOG": str(curl_log),

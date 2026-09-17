@@ -15,20 +15,18 @@ helper script는 ARM64와 x86_64 Linux를 지원하며 특정 workload launcher�
 
 ### 1. Prepare Tools
 
-`install_observability_tools.sh`는 host architecture에 맞는 userspace 도구를 내려받습니다.
+`install_telemetry_tools.sh`는 host architecture에 맞는 userspace 도구를 내려받습니다.
 driver와 system package는 설치하지 않습니다.
 
 관측할 node에서는 기본 도구를, controller에서는 server 도구를 설치합니다.
 
 ```bash
-cd observability
-bash scripts/install_observability_tools.sh
+bash scripts/install_telemetry_tools.sh
 ```
 
 ```bash
-cd observability
 TOOLS_DIR='<controller-local-tools>' \
-  bash scripts/install_observability_tools.sh server
+  bash scripts/install_telemetry_tools.sh server
 ```
 
 ### 2. Start Collectors on Each Node
@@ -47,7 +45,7 @@ GPU sampler의 기본 실행 시간은 15분입니다.
 NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
 DURATION=3600 \
-  bash scripts/run_observability.sh node
+  bash scripts/run_telemetry.sh node
 ```
 
 #### Live Application Metrics
@@ -59,10 +57,10 @@ NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
 OBSERVATORY_METRICS_DIR='<launcher-output>/observatory-metrics' \
 DURATION=3600 \
-  bash scripts/run_observability.sh node
+  bash scripts/run_telemetry.sh node
 ```
 
-[`observatory_metrics.textfile`](../../observability/observatory_metrics/textfile.py)은 worker JSON을 읽어 다음 metric을 node exporter의 textfile collector로 전달합니다.
+[`observatory_metrics.textfile`](../observatory_metrics/textfile.py)은 worker JSON을 읽어 다음 metric을 node exporter의 textfile collector로 전달합니다.
 
 - 공통: `training_loss`, `training_tokens_per_second`, `training_step_time_seconds`, `training_step`
 - Megatron: `training_timer_seconds{timer="..."}`
@@ -91,15 +89,15 @@ Monitoring server는 GPU workload와 자원 경합이 없도록 controller에서
 `OUTPUT_DIR`과 `TOOLS_DIR`에는 NFS checkout 밖의 controller-local 경로를 지정합니다.
 Controller가 각 node의 management address와 exporter port에 접근할 수 있어야 합니다.
 
-`OBSERVABILITY_TARGETS`에 `이름=주소` 항목을 쉼표로 연결합니다.
+`TELEMETRY_TARGETS`에 `이름=주소` 항목을 쉼표로 연결합니다.
 node 수와 역할은 고정하지 않습니다.
 
 ```bash
 TOOLS_DIR='<controller-local-tools>' \
 OUTPUT_DIR='<controller-local-monitoring-state>' \
 CLUSTER_NAME='<cluster-name>' \
-OBSERVABILITY_TARGETS='trainer-0=<first-node-address>,rollout-0=<second-node-address>' \
-  bash scripts/run_observability.sh server
+TELEMETRY_TARGETS='trainer-0=<first-node-address>,rollout-0=<second-node-address>' \
+  bash scripts/run_telemetry.sh server
 ```
 
 | 항목 | 동작 |
@@ -133,13 +131,13 @@ Loki는 controller에서 실행하고 각 Spark node의 Alloy가 그 node의 loc
 TOOLS_DIR='<controller-local-tools>' \
 OUTPUT_DIR='<controller-local-monitoring-state>' \
 CLUSTER_NAME='<cluster-name>' \
-OBSERVABILITY_TARGETS='trainer-0=<first-node-address>,rollout-0=<second-node-address>' \
+TELEMETRY_TARGETS='trainer-0=<first-node-address>,rollout-0=<second-node-address>' \
 ENABLE_LOGS=1 \
 LOKI_LISTEN_ADDR='<controller-management-address>' \
-  bash scripts/run_observability.sh server
+  bash scripts/run_telemetry.sh server
 ```
 
-각 Spark node에서 workload 이름과 node-local output root를 `OBSERVABILITY_LOG_ROOTS`에 전달합니다.
+각 Spark node에서 workload 이름과 node-local output root를 `TELEMETRY_LOG_ROOTS`에 전달합니다.
 Alloy는 각 root의 `<run-id>/logs/**/*.log`를 찾으므로 launcher 종류와 무관하게 같은 규칙을 사용할 수 있습니다.
 TRL, Megatron과 Verl launcher가 이 규칙을 사용하며 이후 agentic RL workload도 `logs` 아래에 file을 기록하면 별도 Loki 연동 코드가 필요 없습니다.
 
@@ -149,12 +147,12 @@ NODE_NAME='<node-name>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
 CLUSTER_NAME='<cluster-name>' \
 LOKI_PUSH_URL='http://<controller-management-address>:13100/loki/api/v1/push' \
-OBSERVABILITY_LOG_ROOTS='trl=<node-local-trl-output-root>,megatron=<node-local-megatron-output-root>,verl=<node-local-verl-output-root>' \
+TELEMETRY_LOG_ROOTS='trl=<node-local-trl-output-root>,megatron=<node-local-megatron-output-root>,verl=<node-local-verl-output-root>' \
 DURATION=3600 \
-  bash scripts/run_observability.sh node
+  bash scripts/run_telemetry.sh node
 ```
 
-`run_observability.sh`는 log root의 filesystem을 확인하고 NFS/NFS4이면 시작을 거부합니다.
+`run_telemetry.sh`는 log root의 filesystem을 확인하고 NFS/NFS4이면 시작을 거부합니다.
 Alloy는 읽은 offset을 node-local `OUTPUT_DIR/alloy-data`에 저장하므로 재시작 뒤 이미 전송한 구간부터 이어서 처리합니다.
 처음 연결할 때는 과거 file 전체를 한꺼번에 적재하지 않도록 기본 24시간보다 오래된 file을 제외하며 `ALLOY_IGNORE_OLDER_THAN`으로 조정할 수 있습니다.
 Alloy는 `cluster`, `node`, `workload`만 직접 index label로 설정하고 `run_id`, 상대 log file과 원본 경로는 log record 안에 넣어 stream cardinality 증가를 막습니다.
@@ -163,7 +161,7 @@ Alloy는 `cluster`, `node`, `workload`만 직접 index label로 설정하고 `ru
 Run Overview의 `Run Logs` 링크는 현재 시간 범위와 run 선택을 유지합니다.
 
 ```bash
-PYTHONPATH=observability python -m profiling_lab.observability validate-stack \
+PYTHONPATH=. python -m profiling_lab.stack validate-stack \
   --prometheus-url http://127.0.0.1:19090 \
   --grafana-url http://127.0.0.1:13000 \
   --loki-url http://<controller-management-address>:13100 \
@@ -183,13 +181,13 @@ client browser에서 `http://localhost:13000`을 엽니다.
 
 | Dashboard | 확인할 내용 |
 | --- | --- |
-| Run Overview (`run-overview.json`, uid `observability-overview`) | target 상태·sample age, GPU utilization matrix, worker별 throughput·step time·loss |
+| Run Overview (`run-overview.json`, uid `telemetry-overview`) | target 상태·sample age, GPU utilization matrix, worker별 throughput·step time·loss |
 | Run Logs | node-local run log 검색과 시간순 history |
 | Compute & Communication | GPU health·memory, worker timer, interface throughput, GPU allocation·compute topology |
 | Data & Storage | node-local device·filesystem 성능, storage topology, 선택적 SSD SMART |
 
 화면 링크는 시간·cluster·node·run 선택을 유지합니다.
-`server` role은 `examples/observability/`의 metric dashboard 세 개를 provisioning 경로로 복사하고 `ENABLE_LOGS=1`이면 Run Logs도 추가합니다.
+`server` role은 `examples/dashboards/`의 metric dashboard 세 개를 provisioning 경로로 복사하고 `ENABLE_LOGS=1`이면 Run Logs도 추가합니다.
 같은 경로의 `grafana/`와 `compose.yaml`은 별도 Docker Compose 예시입니다.
 
 ## Synthetic Live Demo
@@ -197,11 +195,10 @@ client browser에서 `http://localhost:13000`을 엽니다.
 실제 GPU나 storage 없이 dashboard 동작을 확인하려면 controller에서 실행합니다.
 
 ```bash
-cd observability
 TOOLS_DIR='<controller-local-tools>' \
 OUTPUT_DIR='<controller-local-monitoring-state>' \
 DEMO_LIVE=1 \
-  bash scripts/run_observability.sh server
+  bash scripts/run_telemetry.sh server
 ```
 
 | 구성 | Demo 값 |
@@ -239,7 +236,7 @@ Synthetic demo이므로 실제 LLM 학습 결과로 해석하지 않습니다.
 - interface·RDMA counter는 endpoint별 traffic matrix가 아닙니다.
 - device·filesystem 지표는 특정 run의 단독 사용량이 아닙니다.
 
-Simulator는 Prometheus의 `observability`와 `storage-smart` job에 metric을 제공합니다.
+Simulator는 Prometheus의 `telemetry`와 `storage-smart` job에 metric을 제공합니다.
 fixture는 `examples/live-demo/`에 있으며 `DEMO_TOPOLOGY_DIR`, `DEMO_ADDR`, `DEMO_PORT`로 경로와 listen address를 바꿀 수 있습니다.
 
 ## SSD Health
@@ -250,7 +247,7 @@ SSD health는 특정 run의 write 양이 아니라 장치 이상과 장기 열�
 
 | 항목 | 확인할 내용 |
 | --- | --- |
-| Exporter | `smartctl_exporter`는 observability 도구 설치에 포함 |
+| Exporter | `smartctl_exporter`는 telemetry 도구 설치에 포함 |
 | System package | `smartctl`을 제공하는 `smartmontools`는 별도 설치 |
 | NVMe 권한 | `/dev/nvmeN`의 admin-passthrough ioctl 접근 필요 |
 | 자동 권한 처리 | 필요하면 exporter가 아닌 `smartctl`만 passwordless sudo로 실행 |
@@ -267,7 +264,7 @@ compute node의 local SSD는 기존 `node` role에서 활성화합니다.
 NODE_ADDR='<node-management-address>' \
 OUTPUT_DIR='<node-local-monitoring-state>' \
 ENABLE_SSD_HEALTH=1 \
-  bash scripts/run_observability.sh node
+  bash scripts/run_telemetry.sh node
 ```
 
 ### Collect Dedicated Storage Nodes
@@ -279,7 +276,7 @@ helper script를 사용할 수 없는 host에서는 `smartctl_exporter`를 따�
 NODE_ADDR='<storage-node-management-address>' \
 OUTPUT_DIR='<storage-node-local-monitoring-state>' \
 SMARTCTL_EXPORTER='<smartctl-exporter-path>' \
-  bash scripts/run_observability.sh storage
+  bash scripts/run_telemetry.sh storage
 ```
 
 | 설정 | 기본값 |
@@ -299,10 +296,10 @@ Controller의 monitoring server에는 compute target과 storage target을 함께
 TOOLS_DIR='<controller-local-tools>' \
 OUTPUT_DIR='<controller-local-monitoring-state>' \
 CLUSTER_NAME='<cluster-name>' \
-OBSERVABILITY_TARGETS='trainer-0=<trainer-address>,trainer-1=<trainer-address>' \
+TELEMETRY_TARGETS='trainer-0=<trainer-address>,trainer-1=<trainer-address>' \
 STORAGE_SYSTEM='3fs' \
 STORAGE_TARGETS='storage-0=<storage-address>,storage-1=<storage-address>' \
-  bash scripts/run_observability.sh server
+  bash scripts/run_telemetry.sh server
 ```
 
 `STORAGE_SYSTEM`에는 `local`, `3fs`, `pnfs`처럼 배치를 식별하는 값을 사용합니다.

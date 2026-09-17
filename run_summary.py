@@ -1,7 +1,7 @@
 """Build the common machine-readable experiment summary.
 
-Lives here because both backend launchers already export observability/ on
-PYTHONPATH; megatron_lab.compare imports it by bare name at runtime.
+Lives at the repository root so consumers that put this repository on
+PYTHONPATH can import it by bare name (e.g. megatron_lab.compare).
 """
 
 from __future__ import annotations

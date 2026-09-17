@@ -29,7 +29,7 @@ Synthetic trace나 NCCL baseline을 실제 LLM throughput으로 해석하지 않
 
 ## Inspect Run State
 
-[`show_run`](../../observability/profiling_lab/show_run.py)은 monitoring server 없이 한 output directory의 실행 상태를 요약합니다.
+[`show_run`](../profiling_lab/show_run.py)은 monitoring server 없이 한 output directory의 실행 상태를 요약합니다.
 
 | 입력 | 표시하는 정보 |
 | --- | --- |
@@ -38,7 +38,7 @@ Synthetic trace나 NCCL baseline을 실제 LLM throughput으로 해석하지 않
 | `observatory-metrics/<producer>-<role>-<worker>.json` | worker별 마지막 step과 metric |
 
 ```bash
-PYTHONPATH=observability python3 -m profiling_lab.show_run '<output-dir>'
+PYTHONPATH=. python3 -m profiling_lab.show_run '<output-dir>'
 ```
 
 Application metric을 보려면 실행 시 `OBSERVATORY_RUN_ID`와 `OBSERVATORY_METRICS_DIR`가 설정되어 있어야 합니다.
@@ -82,7 +82,7 @@ PYTHON='<cuda-python>' \
 | --- | --- |
 | Step 수 (`baseline`, `capture`) | `STEPS=24` |
 | 실행 제한 | `RUN_TIMEOUT=300`초 |
-| 출력 | `artifacts/observability/<run-id>/<mode>/` |
+| 출력 | `artifacts/telemetry/<run-id>/<mode>/` |
 
 명령은 기존 GPU process와 최소 가용 memory를 확인한 뒤 workload를 시작합니다.
 다른 GPU 작업이 있으면 종료될 때까지 기다리며 임의로 중지하지 않습니다.

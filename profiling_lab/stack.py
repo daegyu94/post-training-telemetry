@@ -79,7 +79,7 @@ def grafana_database_is_healthy(payload: dict[str, Any]) -> bool:
 
 
 def _request(url: str, timeout: float = 5.0) -> bytes:
-    request = Request(url, headers={"User-Agent": "sft-lab-observability-validation/1"})
+    request = Request(url, headers={"User-Agent": "post-training-telemetry-validation/1"})
     with urlopen(request, timeout=timeout) as response:
         return response.read()
 

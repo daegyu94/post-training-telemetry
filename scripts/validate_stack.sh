@@ -5,9 +5,9 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 python_bin="${PYTHON:-python}"
-compose_dir="$repo_root/examples/observability"
+compose_dir="$repo_root/examples/dashboards"
 target_dir="${TARGET_DIR:-$compose_dir/targets}"
-output_dir="${OUTPUT_DIR:-$repo_root/artifacts/observability-validation}"
+output_dir="${OUTPUT_DIR:-$repo_root/artifacts/telemetry-validation}"
 prometheus_url="${PROMETHEUS_URL:-http://127.0.0.1:9090}"
 grafana_url="${GRAFANA_URL:-http://127.0.0.1:3000}"
 validation_timeout="${VALIDATION_TIMEOUT:-60}"
@@ -18,7 +18,7 @@ if ! command -v "$python_bin" >/dev/null 2>&1; then
   exit 1
 fi
 
-"$python_bin" -m profiling_lab.observability check-targets \
+"$python_bin" -m profiling_lab.stack check-targets \
   --target-dir "$target_dir"
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -57,7 +57,7 @@ if [[ "$require_targets_up" == "1" ]]; then
 fi
 
 set +e
-"$python_bin" -m profiling_lab.observability validate-stack "${validation_args[@]}"
+"$python_bin" -m profiling_lab.stack validate-stack "${validation_args[@]}"
 validation_status=$?
 set -e
 
