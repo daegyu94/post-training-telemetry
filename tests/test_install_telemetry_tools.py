@@ -8,6 +8,19 @@ import pytest
 ROOT = Path(__file__).parents[1]
 
 
+def test_installer_requires_tools_dir() -> None:
+    result = subprocess.run(
+        ["bash", str(ROOT / "scripts/install_telemetry_tools.sh"), "server"],
+        env={"PATH": os.environ["PATH"]},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "Set TOOLS_DIR" in result.stderr
+
+
 @pytest.mark.parametrize(
     ("machine", "release_arch"),
     [("aarch64", "arm64"), ("x86_64", "amd64")],

@@ -19,9 +19,11 @@ helper script는 ARM64와 x86_64 Linux를 지원하며 특정 workload launcher�
 driver와 system package는 설치하지 않습니다.
 
 관측할 node에서는 기본 도구를, controller에서는 server 도구를 설치합니다.
+`TOOLS_DIR`은 node 또는 controller의 local 경로로 반드시 지정합니다.
 
 ```bash
-bash scripts/install_telemetry_tools.sh
+TOOLS_DIR='<node-local-tools>' \
+  bash scripts/install_telemetry_tools.sh
 ```
 
 ```bash
@@ -104,6 +106,7 @@ TELEMETRY_TARGETS='trainer-0=<first-node-address>,rollout-0=<second-node-address
 | --- | --- |
 | Prometheus | controller의 `127.0.0.1:19090`에서 실행 |
 | Grafana | controller의 `127.0.0.1:13000`에서 실행 |
+| 시작 확인 | 두 HTTP endpoint와 Prometheus query를 확인한 뒤 URL과 `startup-summary.json`을 출력 |
 | 기본 접근 권한 | anonymous Viewer |
 | 관리자 비밀번호 | 필요할 때만 `GRAFANA_ADMIN_PASSWORD`로 지정 |
 | 설정만 생성 | `SERVER_CONFIG_ONLY=1`이면 service를 시작하지 않고 provisioning 파일만 생성 |

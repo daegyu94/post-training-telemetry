@@ -396,6 +396,18 @@ EOF
   "$tools_dir/grafana-v12.1.0/bin/grafana" server \
     --homepath="$tools_dir/grafana-v12.1.0" > "$output_dir/grafana.log" 2>&1 &
   pids+=("$!")
+  validation_args=(
+    validate-stack
+    --prometheus-url http://127.0.0.1:19090
+    --grafana-url http://127.0.0.1:13000
+    --output "$output_dir/startup-summary.json"
+    --timeout "${SERVER_START_TIMEOUT:-60}"
+  )
+  if [[ "${ENABLE_LOGS:-0}" == 1 ]]; then
+    validation_args+=(--loki-url "http://$loki_listen_addr:13100")
+  fi
+  "${PYTHON:-python3}" -m post_training_telemetry.stack "${validation_args[@]}"
+  printf 'Monitoring server ready: Prometheus=http://127.0.0.1:19090 Grafana=http://127.0.0.1:13000\n'
 else
   echo 'Use node, storage, or server' >&2
   exit 2

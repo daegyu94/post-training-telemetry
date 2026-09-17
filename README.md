@@ -74,7 +74,7 @@ for f in scripts/*.sh; do bash -n "$f"; done
 | Prometheus metric `profiling_gpu_*`, `profiling_topology_*` | `telemetry_gpu_*`, `telemetry_topology_*` |
 | `examples/observability/` | `examples/dashboards/` |
 | `OBSERVABILITY_TARGETS`, `OBSERVABILITY_LOG_ROOTS` | `TELEMETRY_TARGETS`, `TELEMETRY_LOG_ROOTS` |
-| 기본 `TOOLS_DIR` `~/.local/share/observability-tools` | `~/.local/share/telemetry-tools` |
+| 기본 `TOOLS_DIR` `~/.local/share/observability-tools` | `TOOLS_DIR` 필수 지정 |
 | Prometheus job `observability` | `telemetry` |
 | Grafana uid `observability-{overview,prometheus,loki}` | `telemetry-{overview,prometheus,loki}` |
 
