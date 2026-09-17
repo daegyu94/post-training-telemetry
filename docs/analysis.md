@@ -1,7 +1,8 @@
 # Run Analysis
 
 이 문서는 dashboard에서 발견한 이상 징후의 원인을 좁히는 방법을 설명합니다.
-실행 결과를 먼저 확인하고, 상시 지표만으로 원인을 판단할 수 없을 때 trace나 hardware baseline을 추가로 수집합니다.
+System resource metric으로 자원 상태를 확인하고 application metric으로 같은 시간의 workload 상태를 확인합니다.
+두 상시 지표만으로 원인을 판단할 수 없을 때 trace나 hardware baseline을 추가로 수집합니다.
 
 ## Choose the Evidence
 
@@ -9,6 +10,8 @@
 
 | 질문 | 먼저 사용할 도구 | 확인할 내용 |
 | --- | --- | --- |
+| 자원이 포화되거나 오류를 보고했는가? | system resource dashboard | GPU·host·network·storage 상태와 sample freshness |
+| 그때 workload가 무엇을 하고 있었는가? | application metric dashboard | loss, step, throughput, timer, phase |
 | 실행이 어느 stage까지 진행됐는가? | `show_run` | stage 상태, rank별 마지막 step, output 위치 |
 | 특정 구간에서 CPU·GPU·통신이 어떻게 겹치는가? | selected-rank PyTorch trace | kernel 제출, copy, collective, synchronization |
 | 통신 성능이 hardware 한계에 가까운가? | NCCL baseline | topology 조건, correctness, collective bandwidth |
@@ -18,14 +21,29 @@ run summary와 [monitoring dashboard](monitoring.md)만으로 답할 수 없을 
 
 ## Analysis Workflow
 
-1. Dashboard에서 이상이 발생한 시간 범위와 node·rank·run을 기록합니다.
-2. `show_run`으로 실행 상태와 마지막 application metric을 확인합니다.
-3. 원인이 남아 있으면 같은 조건에서 짧은 trace를 수집합니다.
-4. 통신 병목이 의심되면 별도의 NCCL baseline과 비교합니다.
-5. 원인을 수정한 뒤 profiler를 끈 실행에서 효과를 다시 측정합니다.
+1. Dashboard에서 이상이 발생한 시간 범위와 `run_id`, node, worker를 기록합니다.
+2. 같은 범위의 system resource metric과 application metric을 비교합니다.
+3. `show_run`으로 실행 상태와 마지막 application metric을 확인합니다.
+4. 원인이 남아 있으면 같은 조건에서 짧은 trace를 수집합니다.
+5. 통신 병목이 의심되면 별도의 NCCL baseline과 비교합니다.
+6. 원인을 수정한 뒤 profiler를 끈 실행에서 효과를 다시 측정합니다.
 
 Synthetic trace나 NCCL baseline을 실제 LLM throughput으로 해석하지 않습니다.
 비교할 실행은 model·batch·sequence·topology 등 성능에 영향을 주는 조건을 같게 유지합니다.
+
+## Correlate System and Application Metrics
+
+두 경로의 시간상 동시 발생은 원인 후보를 좁히는 증거이며 그 자체로 인과관계를 증명하지 않습니다.
+
+| Application signal | 함께 볼 system resource signal | 확인할 가설 |
+| --- | --- | --- |
+| step time 증가, GPU utilization 감소 | host CPU·memory pressure, storage latency·throughput | input 또는 host staging 대기 |
+| communication timer 증가 | NIC·RDMA traffic과 error, GPU 간 utilization imbalance | collective 또는 rank synchronization 병목 |
+| checkpoint timer 증가 | filesystem·device write throughput과 queue | checkpoint write 경로 병목 |
+| throughput 감소, GPU utilization 유지 | power·clock·temperature, worker별 step 차이 | throttling 또는 straggler |
+
+System resource metric은 특정 process나 run의 단독 사용량이 아닐 수 있습니다.
+같은 node의 다른 workload, metric freshness와 topology 조건을 확인한 뒤 application metric과 연결합니다.
 
 ## Inspect Run State
 
@@ -90,7 +108,33 @@ PYTHON='<cuda-python>' \
 각 rank의 log·manifest·JSON 결과를 확인하고, `capture`에서는 `traces/`도 확인합니다.
 이 workload는 trace 절차를 검증하는 synthetic DDP이며 실제 LLM 실행이 아닙니다.
 
-실제 PyTorch training loop에 profiler를 넣는 방법은 [Application Integration](metrics.md#application-integration)을 따릅니다.
+### Instrument an Existing PyTorch Loop
+
+[Selected-rank helper](../examples/pytorch/selected_rank_profiler.py)는 선택하지 않은 rank에 no-op profiler를 돌려줍니다.
+다음 코드는 기존 PyTorch loop에서 필요한 rank와 짧은 구간만 수집합니다.
+
+```python
+from pathlib import Path
+from examples.pytorch.selected_rank_profiler import selected_rank_profile
+
+with selected_rank_profile(
+    Path("artifacts/traces/run-001"),
+    ranks={0, 1},
+    skip_first=4,
+    wait=1,
+    warmup=1,
+    active=2,
+) as profiler:
+    for batch in train_loader:
+        train_step(batch)
+        profiler.step()
+```
+
+모든 iteration에서 `profiler.step()`을 호출해야 schedule이 진행됩니다.
+shape·memory·stack 수집은 기본적으로 꺼져 있으며 필요한 질문이 있을 때만 켭니다.
+비교할 rank는 같은 run과 capture 구간을 사용해야 합니다.
+
+[verl profiler 설정](../examples/verl/torch-profiler.yaml)은 외부 framework 연동 참고이며 이 저장소에 verl backend가 있다는 뜻이 아닙니다.
 
 ## Compare a Hardware Baseline
 

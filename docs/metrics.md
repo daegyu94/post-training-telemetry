@@ -18,6 +18,20 @@ Metrics Contract는 관측 데이터를 기록하고 비교할 때 사용할 이
 즉, 계약은 생산자와 소비자가 따라야 할 공통 규칙입니다.
 metric을 실제로 수집하려면 collector나 adapter 구현이 별도로 필요합니다.
 
+## Metric Sources
+
+Metrics Contract는 두 생산 경로에 공통으로 적용됩니다.
+
+| 경로 | Source | 대표 scope |
+| --- | --- | --- |
+| System Resource Metrics | GPU sampler, Node Exporter, system exporter | cluster, node, GPU, device, interface |
+| Application Metrics | framework adapter, `MetricEmitter`, native exporter | run, worker, rank, phase, operation |
+
+`category`는 training, GPU, network, storage처럼 관측 영역을 나타내며 생산 경로를 뜻하지 않습니다.
+예를 들어 NIC byte counter는 system resource source이고 collective timer는 application source이지만 둘 다 network 상태를 설명합니다.
+각 metric의 실제 생산자는 `source`에 기록합니다.
+두 경로를 연결할 때는 application의 `run_id`와 worker를 기준으로 시간 범위를 정한 뒤 같은 node의 system resource metric을 확인합니다.
+
 ## Contract Structure
 
 | Top-level field | 역할 |
@@ -121,52 +135,6 @@ RoCE는 TCP/IP와 RDMA counter를 함께 확인합니다.
 - canonical contract: `rdma_receive_bytes_per_second`, `rdma_transmit_bytes_per_second`, `rdma_errors_total`
 
 NCCL IB transport처럼 kernel network stack을 우회하는 traffic은 `network_*`만으로 판단할 수 없습니다.
-
-## Application Integration
-
-Runner는 output 이름을 `TELEMETRY_RUN_ID`로 설정합니다.
-TRL·Megatron callback은 `<output>/telemetry-metrics/`의 worker JSON을 atomic replace합니다.
-다른 application을 연결하는 방법은 [Application Metrics Guide](application-metrics.md)를 따릅니다.
-
-| 사용 경로 | Reader |
-| --- | --- |
-| 실시간 dashboard | [textfile collector](monitoring.md#live-application-metrics) |
-| 종료된 run 요약 | [`show_run`](analysis.md#inspect-run-state) |
-
-처리량의 의미는 framework마다 다릅니다.
-
-- TRL tokens/s: Trainer가 보고한 누적 입력 token의 차이
-- Megatron tokens/s: `global_batch_size * max_length`를 callback wall time으로 나눈 configured-token 처리율
-
-Megatron 값은 variable-length 실행의 실제 non-padding token 처리율이 아닙니다.
-Megatron timer는 `timing_log_level=1`에서 계산된 rank-local `active_time` 차이를 읽으며 adapter 때문에 추가 collective를 실행하지 않습니다.
-
-[Selected-rank helper](../examples/pytorch/selected_rank_profiler.py)는 선택하지 않은 rank에 no-op profiler를 돌려줍니다.
-다음 코드는 기존 PyTorch loop에 profiler를 삽입하는 예시입니다.
-
-```python
-from pathlib import Path
-from examples.pytorch.selected_rank_profiler import selected_rank_profile
-
-with selected_rank_profile(
-    Path("artifacts/traces/run-001"),
-    ranks={0, 1},
-    skip_first=4,
-    wait=1,
-    warmup=1,
-    active=2,
-) as profiler:
-    for batch in train_loader:
-        train_step(batch)
-        profiler.step()
-```
-
-모든 iteration에서 `profiler.step()`을 호출해야 schedule이 진행됩니다.
-shape·memory·stack 수집은 기본적으로 꺼져 있으며 필요한 질문이 있을 때만 켭니다.
-비교할 rank는 같은 run과 capture 구간을 사용해야 합니다.
-원인을 수정한 뒤에는 profiler를 끈 실행에서 효과를 다시 검증합니다.
-
-[verl profiler 설정](../examples/verl/torch-profiler.yaml)은 외부 framework 연동 참고이며 이 저장소에 verl backend가 있다는 뜻이 아닙니다.
 
 ## Change and Validate the Contract
 

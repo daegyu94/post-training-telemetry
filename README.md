@@ -7,6 +7,35 @@ Synthetic demo는 dashboard 동작을 보여 주기 위한 예시이며 실제 L
 이 저장소는 workload launcher를 포함하지 않습니다.
 [`post-training-lab`](https://github.com/daegyu94/post-training-lab)은 이 저장소를 `third_party/post-training-telemetry` submodule로 참조합니다.
 
+## Observation Model
+
+관측 데이터는 누가 값을 생산하는지에 따라 두 경로로 나뉩니다.
+
+| 경로 | 답하는 질문 | 대표 신호 | 생산자 |
+| --- | --- | --- | --- |
+| System Resource Metrics | GPU, host, network와 storage가 어떤 상태인가? | utilization, memory, power, traffic, I/O, SMART | GPU sampler, Node Exporter, system exporter |
+| Application Metrics | workload가 어떤 단계에서 어떤 성능을 내는가? | loss, step, throughput, timer, phase | framework adapter, `MetricEmitter`, native exporter |
+
+```mermaid
+flowchart LR
+    S["System Resource Metrics<br/>GPU · host · network · storage"] --> E["Exporters"]
+    A["Application Metrics<br/>loss · step · throughput · phase"] --> J["Worker JSON"]
+    A --> N["Native endpoint"]
+    J --> T["Textfile collector"]
+    T --> E
+    E --> P["Prometheus"]
+    N --> P
+    P --> G["Grafana"]
+    J --> R["show_run"]
+    G --> D["Correlation and diagnosis"]
+    R --> D
+    D --> X["Focused trace · baseline"]
+```
+
+Application metric에서 `run_id`와 worker를 선택하고, 같은 시간 범위와 node의 system resource metric을 함께 해석합니다.
+System resource metric은 자원이 어디에서 포화됐는지 보여 주고, application metric은 그때 workload가 무엇을 하고 있었는지 보여 줍니다.
+`network`, `checkpoint`, `data_movement`처럼 두 경로에 걸친 영역은 metric 이름이 아니라 실제 source를 기준으로 구분합니다.
+
 ## Layout
 
 | 경로 | 내용 |
@@ -39,16 +68,16 @@ Shell script, dashboard와 demo fixture는 Python package에 포함되지 않으
 
 ## Start Here
 
-분산 실행을 관측하려면 먼저 [분산 실행 모니터링](docs/monitoring.md)에서 collector와 dashboard 설정 방법을 확인합니다.
-이상이 발견되면 [실행 분석](docs/analysis.md)에 따라 run history를 확인하고, 필요한 구간의 selected-rank trace를 수집하거나 hardware baseline과 비교합니다.
-지표를 추가하거나 해석할 때는 [Metrics Contract](docs/metrics.md)에 정의된 이름·단위·측정 범위를 따릅니다.
-Training이나 agentic RL application에 metric을 연결할 때는 [Application Metrics Guide](docs/application-metrics.md)를 따릅니다.
+System resource metric을 수집하고 dashboard를 실행하려면 [분산 실행 모니터링](docs/monitoring.md)에서 시작합니다.
+Training이나 agentic RL workload의 상태를 함께 보려면 [Application Metrics Guide](docs/application-metrics.md)에 따라 adapter나 emitter를 연결합니다.
+이상이 발견되면 [실행 분석](docs/analysis.md)에서 두 경로를 연관 지어 보고, 필요한 구간에만 selected-rank trace나 hardware baseline을 추가합니다.
+지표를 추가하거나 의미를 해석할 때는 [Metrics Contract](docs/metrics.md)의 이름·단위·측정 범위를 따릅니다.
 
 | 목적 | 문서 |
 | --- | --- |
-| application에 metric emitter나 Trainer callback 연결 | [Application Metrics Guide](docs/application-metrics.md) |
-| node collector, monitoring server, dashboard, SSD health, application metrics | [분산 실행 모니터링](docs/monitoring.md) |
-| 과거 실행 요약, selected-rank PyTorch trace, NCCL baseline | [실행 분석](docs/analysis.md) |
+| host, GPU, network, storage collector와 dashboard 실행 | [분산 실행 모니터링](docs/monitoring.md) |
+| application에 metric emitter나 framework adapter 연결 | [Application Metrics Guide](docs/application-metrics.md) |
+| 두 경로의 상관분석, 실행 요약, trace, hardware baseline | [실행 분석](docs/analysis.md) |
 | metric 이름·단위·scope, label, workflow phase | [Metrics Contract](docs/metrics.md) |
 
 ## Local Validation

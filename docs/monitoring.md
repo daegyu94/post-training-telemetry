@@ -1,15 +1,25 @@
 # Distributed Run Monitoring
 
-각 node의 host·GPU 지표를 수집하고 Prometheus와 Grafana에서 확인하는 방법을 설명합니다.
+System resource metric과 선택적인 application metric을 수집해 Prometheus와 Grafana에서 함께 확인하는 방법을 설명합니다.
 helper script는 ARM64와 x86_64 Linux를 지원하며 특정 workload launcher나 cluster setup을 가정하지 않습니다.
 관측 대상은 `이름=주소` 형식으로 지정하므로 node 구성에 맞게 확장할 수 있습니다.
 
 ## Monitoring Flow
 
+Monitoring은 서로 독립적으로 생산된 두 metric 경로를 Prometheus에서 결합합니다.
+
+| 경로 | Node에서 하는 일 | 활성화 조건 |
+| --- | --- | --- |
+| System Resource Metrics | host·GPU·network·storage exporter가 자원 상태를 노출 | `node` 또는 `storage` role을 실행하면 기본 활성화 |
+| Application Metrics | worker JSON을 Node Exporter textfile 형식으로 변환 | workload가 metric을 기록하고 `TELEMETRY_METRICS_DIR`를 지정할 때 활성화 |
+
 1. 각 node에서 collector를 실행합니다.
-2. 필요하면 같은 node에서 application metrics와 topology 수집을 추가합니다.
+2. 필요하면 같은 node에서 application metric과 topology 수집을 추가합니다.
 3. controller의 local storage에서 Prometheus와 Grafana를 시작합니다.
-4. GUI가 있는 client에서 Grafana dashboard를 엽니다.
+4. Grafana에서 application run·worker와 같은 시간 범위·node의 system resource metric을 함께 봅니다.
+
+Application 계측 코드를 연결하는 방법은 [Application Metrics Guide](application-metrics.md)를 따릅니다.
+이 문서는 이미 생성된 두 metric 경로를 수집하고 표시하는 운영 절차에 집중합니다.
 
 ## Start Monitoring
 
@@ -33,6 +43,8 @@ TOOLS_DIR='<controller-local-tools>' \
 
 ### 2. Start Collectors on Each Node
 
+#### System Resource Metrics
+
 `node` role은 다음 process를 시작합니다.
 
 - node exporter: host 지표를 19100 포트에 노출
@@ -50,7 +62,10 @@ DURATION=3600 \
   bash scripts/run_telemetry.sh node
 ```
 
-#### Live Application Metrics
+`TOPOLOGY_DIR`를 지정하면 `compute-topology.json`과 `storage-topology.json`의 component·edge를 Grafana에 표시합니다.
+이 정보는 연결 관계일 뿐 bandwidth나 latency 측정값은 아닙니다.
+
+#### Application Metrics
 
 학습 loss·처리량·step time을 dashboard에 표시하려면 launcher가 쓰는 application metrics 디렉터리를 같은 node의 collector에 전달합니다.
 
@@ -81,9 +96,6 @@ Dashboard의 freshness 처리는 다음과 같습니다.
 
 긴 step에서는 `Training sample max age (s)`를 늘립니다.
 오래되거나 없는 allocation 정보를 GPU가 비어 있다는 뜻으로 해석하지 않습니다.
-
-`TOPOLOGY_DIR`를 지정하면 `compute-topology.json`과 `storage-topology.json`의 component·edge를 Grafana에 표시합니다.
-이 정보는 연결 관계일 뿐 bandwidth나 latency 측정값은 아닙니다.
 
 ### 3. Start the Monitoring Server
 
@@ -229,7 +241,7 @@ Topology는 전달된 연결 관계이며 link bandwidth나 endpoint별 traffic 
 아래 GIF는 30초 동안 exporter 상태, sample age, GPU utilization matrix가 갱신되는 모습을 보여 줍니다.
 Synthetic demo이므로 실제 LLM 학습 결과로 해석하지 않습니다.
 
-![30초 Run Overview synthetic live demo](../figures/post-training-run-overview-30s.gif)
+![30초 Run Overview synthetic live demo](figures/post-training-run-overview-30s.gif)
 
 해석할 때 주의할 점:
 
