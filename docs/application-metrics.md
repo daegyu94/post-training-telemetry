@@ -6,6 +6,8 @@ Application은 로컬 JSON snapshot만 갱신하고, 별도 collector가 이를 
 ## Application Metrics Flow
 
 Application metric은 workload 내부 상태를 system resource collector와 독립적으로 기록합니다.
+여기서 worker는 metric을 독립적으로 생산하는 application 실행 단위이며, 일반적으로 분산 학습의 process 또는 rank 하나를 뜻합니다.
+이 저장소는 worker를 실행하거나 관리하지 않고 `producer`, `role`, `worker_id`로 각 worker가 기록한 metric을 구분합니다.
 
 1. Framework adapter나 custom loop가 `MetricEmitter`에 값을 전달합니다.
 2. Emitter가 `<output>/telemetry-metrics/`의 worker별 JSON snapshot을 atomic replace합니다.
